@@ -7,13 +7,14 @@ import (
 )
 
 type sequence struct {
+	bpm      float64
 	send     func(midi.Message) error
 	messages []midi.Message
 }
 
 func (s *sequence) play() error {
 
-	ticker := time.NewTicker(time.Second / 2)
+	ticker := time.NewTicker(time.Duration(float64(time.Minute) / s.bpm))
 	defer ticker.Stop()
 
 	for i := 0; i < len(s.messages); {

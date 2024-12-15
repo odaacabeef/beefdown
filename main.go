@@ -23,6 +23,7 @@ func main() {
 	}
 
 	s := sequence{
+		bpm:  150,
 		send: send,
 		messages: []midi.Message{
 			midi.NoteOn(0, midi.C(5), 100),
@@ -30,7 +31,7 @@ func main() {
 		},
 	}
 
-	time.Sleep(5 * time.Second) // virtual out takes a bit to register in other applications
+	time.Sleep(3 * time.Second) // virtual out takes a bit to register in other applications
 
 	err = s.play()
 	if err != nil {
