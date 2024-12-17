@@ -1,41 +1,41 @@
-package midi
+package device
 
 import (
 	"time"
 
-	gomidi "gitlab.com/gomidi/midi/v2"
+	"gitlab.com/gomidi/midi/v2"
 	"gitlab.com/gomidi/midi/v2/drivers"
-	rtmidi "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
+	"gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
 )
 
-type MIDI struct {
+type Device struct {
 	Out  drivers.Out
-	Send func(gomidi.Message) error
+	Send func(midi.Message) error
 }
 
 type Sequence struct {
 	BPM      float64
-	Messages []gomidi.Message
+	Messages []midi.Message
 }
 
-func NewMIDI() (*MIDI, error) {
+func New() (*Device, error) {
 
-	out, err := drivers.Get().(*rtmidi.Driver).OpenVirtualOut("seq")
+	out, err := drivers.Get().(*rtmididrv.Driver).OpenVirtualOut("seq")
 	if err != nil {
 		return nil, err
 	}
-	send, err := gomidi.SendTo(out)
+	send, err := midi.SendTo(out)
 	if err != nil {
 		return nil, err
 	}
 
-	return &MIDI{
+	return &Device{
 		Out:  out,
 		Send: send,
 	}, nil
 }
 
-func (m *MIDI) Play(s Sequence) error {
+func (m *Device) Play(s Sequence) error {
 
 	ticker := time.NewTicker(time.Duration(float64(time.Minute) / s.BPM))
 	defer ticker.Stop()

@@ -1,14 +1,14 @@
 package ui
 
 import (
-	"github.com/trotttrotttrott/seq/midi"
+	"github.com/trotttrotttrott/seq/device"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type model struct {
-	MIDI midi.MIDI
-	err  error
+	device device.Device
+	err    error
 }
 
 func Start() error {
@@ -24,12 +24,12 @@ func Start() error {
 }
 
 func initialModel() (*model, error) {
-	m, err := midi.NewMIDI()
+	d, err := device.New()
 	if err != nil {
 		return nil, err
 	}
 	return &model{
-		MIDI: *m,
+		device: *d,
 	}, nil
 }
 
@@ -50,12 +50,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "enter", " ":
 
-			s := midi.Sequence{
+			s := device.Sequence{
 				BPM:      150,
-				Messages: midi.Messages(),
+				Messages: device.Messages(),
 			}
 
-			err := m.MIDI.Play(s)
+			err := m.device.Play(s)
 			if err != nil {
 				m.err = err
 			}
