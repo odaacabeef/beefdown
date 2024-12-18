@@ -3,6 +3,8 @@ package device
 import (
 	"time"
 
+	"github.com/trotttrotttrott/seq/sequence"
+
 	"gitlab.com/gomidi/midi/v2"
 	"gitlab.com/gomidi/midi/v2/drivers"
 	"gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
@@ -11,11 +13,6 @@ import (
 type Device struct {
 	Out  drivers.Out
 	Send func(midi.Message) error
-}
-
-type Sequence struct {
-	BPM      float64
-	Messages []midi.Message
 }
 
 func New() (*Device, error) {
@@ -35,7 +32,7 @@ func New() (*Device, error) {
 	}, nil
 }
 
-func (m *Device) Play(s Sequence) error {
+func (m *Device) Play(s sequence.Sequence) error {
 
 	ticker := time.NewTicker(time.Duration(float64(time.Minute) / s.BPM))
 	defer ticker.Stop()

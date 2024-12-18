@@ -2,13 +2,15 @@ package ui
 
 import (
 	"github.com/trotttrotttrott/seq/device"
+	"github.com/trotttrotttrott/seq/sequence"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type model struct {
-	device device.Device
-	err    error
+	device    device.Device
+	sequences []sequence.Sequence
+	err       error
 }
 
 func Start() error {
@@ -28,8 +30,10 @@ func initialModel() (*model, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &model{
-		device: *d,
+		device:    *d,
+		sequences: sequence.List(),
 	}, nil
 }
 
@@ -50,10 +54,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "enter", " ":
 
-			s := device.Sequence{
-				BPM:      150,
-				Messages: device.Messages(),
-			}
+			s := m.sequences[0]
 
 			err := m.device.Play(s)
 			if err != nil {
