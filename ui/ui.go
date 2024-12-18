@@ -8,6 +8,7 @@ import (
 )
 
 type model struct {
+	bpm       float64
 	device    device.Device
 	sequences []sequence.Sequence
 	err       error
@@ -32,6 +33,7 @@ func initialModel() (*model, error) {
 	}
 
 	return &model{
+		bpm:       120,
 		device:    *d,
 		sequences: sequence.List(),
 	}, nil
@@ -56,7 +58,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			s := m.sequences[0]
 
-			err := m.device.Play(s)
+			err := m.device.Play(m.bpm, s)
 			if err != nil {
 				m.err = err
 			}

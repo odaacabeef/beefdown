@@ -6,7 +6,6 @@ import (
 
 type Sequence struct {
 	Name  string
-	BPM   float64
 	Steps [][]midi.Message
 }
 
@@ -15,7 +14,6 @@ func List() []Sequence {
 	return []Sequence{
 		{
 			Name: "test",
-			BPM:  150,
 			Steps: [][]midi.Message{
 				{
 					midi.NoteOn(0, midi.A(4), 100),
