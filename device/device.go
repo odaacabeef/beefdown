@@ -35,16 +35,16 @@ func (d *Device) Play(s sequence.Sequence) error {
 	ticker := time.NewTicker(time.Duration(float64(time.Minute) / s.BPM))
 	defer ticker.Stop()
 
-	m := s.Messages()
-
-	for i := 0; i < len(m); {
+	for i := range s.Steps {
 		select {
 		case <-ticker.C:
-			err := d.Send(m[i])
-			if err != nil {
-				return err
+			for _, m := range s.Steps[i] {
+				err := d.Send(m)
+				if err != nil {
+					return err
+				}
+				i++
 			}
-			i++
 		}
 	}
 	return nil
