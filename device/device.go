@@ -11,7 +11,6 @@ import (
 )
 
 type Device struct {
-	Out  drivers.Out
 	Send func(midi.Message) error
 }
 
@@ -27,7 +26,6 @@ func New() (*Device, error) {
 	}
 
 	return &Device{
-		Out:  out,
 		Send: send,
 	}, nil
 }
