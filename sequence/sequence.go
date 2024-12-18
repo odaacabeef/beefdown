@@ -5,12 +5,23 @@ import (
 )
 
 type Sequence struct {
-	Name     string
-	BPM      float64
-	Messages []midi.Message
+	Name  string
+	BPM   float64
+	Steps int64
 }
 
 func List() []Sequence {
+
+	return []Sequence{
+		{
+			Name:  "test",
+			BPM:   150,
+			Steps: 16,
+		},
+	}
+}
+
+func (s *Sequence) Messages() []midi.Message {
 
 	var mm []midi.Message
 
@@ -19,11 +30,5 @@ func List() []Sequence {
 		mm = append(mm, midi.NoteOff(0, note))
 	}
 
-	return []Sequence{
-		{
-			Name:     "test",
-			BPM:      150,
-			Messages: mm,
-		},
-	}
+	return mm
 }

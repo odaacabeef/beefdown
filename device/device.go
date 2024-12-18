@@ -30,15 +30,17 @@ func New() (*Device, error) {
 	}, nil
 }
 
-func (m *Device) Play(s sequence.Sequence) error {
+func (d *Device) Play(s sequence.Sequence) error {
 
 	ticker := time.NewTicker(time.Duration(float64(time.Minute) / s.BPM))
 	defer ticker.Stop()
 
-	for i := 0; i < len(s.Messages); {
+	m := s.Messages()
+
+	for i := 0; i < len(m); {
 		select {
 		case <-ticker.C:
-			err := m.Send(s.Messages[i])
+			err := d.Send(m[i])
 			if err != nil {
 				return err
 			}
