@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/trotttrotttrott/seq/device"
 	"github.com/trotttrotttrott/seq/sequence"
 
@@ -8,10 +10,10 @@ import (
 )
 
 type model struct {
-	bpm       float64
-	device    device.Device
-	sequences []sequence.Sequence
-	err       error
+	bpm      float64
+	device   device.Device
+	sequence sequence.Sequence
+	err      error
 }
 
 func Start() error {
@@ -32,10 +34,15 @@ func initialModel() (*model, error) {
 		return nil, err
 	}
 
+	s, err := sequence.New("_test/test.md")
+	if err != nil {
+		return nil, err
+	}
+
 	return &model{
-		bpm:       120,
-		device:    *d,
-		sequences: sequence.List(),
+		bpm:      120,
+		device:   *d,
+		sequence: *s,
 	}, nil
 }
 
@@ -51,14 +58,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 
 		case "ctrl+c", "q":
-
 			return m, tea.Quit
 
 		case "enter", " ":
-
-			s := m.sequences[0]
-
-			err := m.device.Play(m.bpm, s)
+			err := m.device.Play(m.bpm, m.sequence)
 			if err != nil {
 				m.err = err
 			}
@@ -70,13 +73,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 
-	s := "Press enter to play some notes\n\n"
+	s := m.sequence.Path
+
+	s += "\n\n"
 
 	if m.err != nil {
 		s += m.err.Error()
+		s += "\n\n"
 	}
 
-	s += "\n\nPress q to quit.\n"
+	for _, step := range m.sequence.StepData {
+		s += fmt.Sprintf("> %v\n", step)
+	}
 
 	return s
 }
