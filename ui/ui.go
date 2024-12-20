@@ -62,8 +62,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "enter":
-			for _, p := range m.sequence.Parts {
-				err := m.device.Play(m.bpm, p)
+			for _, a := range m.sequence.Arrangements {
+				err := m.device.Play(m.bpm, a)
 				if err != nil {
 					m.err = err
 				}

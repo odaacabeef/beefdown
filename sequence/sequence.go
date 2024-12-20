@@ -70,6 +70,7 @@ func (s *Sequence) parse() error {
 			}
 
 			a.parseMetadata()
+			a.parseParts(*s)
 
 			s.Arrangements = append(s.Arrangements, a)
 		}
