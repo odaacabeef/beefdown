@@ -7,6 +7,7 @@ import (
 	"github.com/trotttrotttrott/seq/sequence"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type model struct {
@@ -75,23 +76,27 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 
-	s := m.sequence.Path
-
-	s += "\n\n"
+	s := ""
 
 	if m.err != nil {
-		s += m.err.Error()
-		s += "\n\n"
+		s += fmt.Sprintf("\n%s\n", m.err.Error())
 	}
 
+	var parts []string
 	for _, p := range m.sequence.Parts {
-		s += p.Name
-		s += "\n\n"
-		for _, step := range p.StepData {
-			s += fmt.Sprintf("%v\n", step)
+		part := fmt.Sprintf("\n%s\n\n", p.Name)
+		for i, step := range p.StepData {
+			part += fmt.Sprintf("%d  %s\n", i+1, step)
 		}
-		s += "\n\n"
+		parts = append(parts, lipgloss.NewStyle().
+			PaddingRight(5).
+			PaddingLeft(2).
+			BorderLeft(true).
+			BorderStyle(lipgloss.Border{Left: "|"}).
+			Render(part))
 	}
+
+	s += lipgloss.JoinHorizontal(lipgloss.Bottom, parts...)
 
 	return s
 }
