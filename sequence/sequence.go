@@ -86,7 +86,11 @@ func (s *Sequence) parse() error {
 }
 
 func (p *Part) parseMetadata() error {
-
+	re := regexp.MustCompile(`name:(.*)`)
+	match := re.FindStringSubmatch(p.metadata)
+	if len(match) > 0 {
+		p.Name = match[1]
+	}
 	return nil
 }
 

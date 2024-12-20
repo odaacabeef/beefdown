@@ -85,6 +85,8 @@ func (m model) View() string {
 	}
 
 	for _, p := range m.sequence.Parts {
+		s += p.Name
+		s += "\n\n"
 		for _, step := range p.StepData {
 			s += fmt.Sprintf("%v\n", step)
 		}
