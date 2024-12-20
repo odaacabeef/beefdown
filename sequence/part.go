@@ -10,7 +10,7 @@ import (
 type Part struct {
 	Name string
 
-	metadata string
+	metadata metadata
 	StepData []string
 
 	StepMIDI [][]midi.Message
@@ -18,13 +18,8 @@ type Part struct {
 	notesOn map[uint8]bool
 }
 
-func (p *Part) parseMetadata() error {
-	re := regexp.MustCompile(`name:(.*)`)
-	match := re.FindStringSubmatch(p.metadata)
-	if len(match) > 0 {
-		p.Name = match[1]
-	}
-	return nil
+func (p *Part) parseMetadata() {
+	p.Name = p.metadata.Name()
 }
 
 func (p *Part) parseMIDI() error {

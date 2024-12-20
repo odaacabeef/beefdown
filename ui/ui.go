@@ -91,12 +91,24 @@ func (m model) View() string {
 		parts = append(parts, lipgloss.NewStyle().
 			PaddingRight(5).
 			PaddingLeft(2).
-			BorderLeft(true).
-			BorderStyle(lipgloss.Border{Left: "|"}).
 			Render(part))
 	}
 
 	s += lipgloss.JoinHorizontal(lipgloss.Bottom, parts...)
+
+	var arrangements []string
+	for _, a := range m.sequence.Arrangements {
+		arrangement := fmt.Sprintf("\n%s\n\n", a.Name)
+		for i, step := range a.StepData {
+			arrangement += fmt.Sprintf("%d  %s\n", i+1, step)
+		}
+		arrangements = append(arrangements, lipgloss.NewStyle().
+			PaddingRight(5).
+			PaddingLeft(2).
+			Render(arrangement))
+	}
+
+	s += lipgloss.JoinVertical(lipgloss.Bottom, arrangements...)
 
 	return s
 }
