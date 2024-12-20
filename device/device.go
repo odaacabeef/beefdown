@@ -30,15 +30,15 @@ func New() (*Device, error) {
 	}, nil
 }
 
-func (d *Device) Play(bpm float64, s sequence.Sequence) error {
+func (d *Device) Play(bpm float64, p sequence.Part) error {
 
 	ticker := time.NewTicker(time.Duration(float64(time.Minute) / bpm))
 	defer ticker.Stop()
 
-	for i := range s.StepMIDI {
+	for i := range p.StepMIDI {
 		select {
 		case <-ticker.C:
-			for _, m := range s.StepMIDI[i] {
+			for _, m := range p.StepMIDI[i] {
 				err := d.Send(m)
 				if err != nil {
 					return err

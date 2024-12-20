@@ -10,28 +10,33 @@ import (
 )
 
 type Sequence struct {
-	Path     string
-	Markdown string
-	Metadata string
+	Path string
+
+	Parts        []Part
+	Arrangements []Arrangement
+}
+
+type Part struct {
+	Name string
+
+	metadata string
 	StepData []string
+
 	StepMIDI [][]midi.Message
 	notesOn  map[uint8]bool
 }
 
+type Arrangement struct{}
+
 func New(p string) (*Sequence, error) {
 
 	s := Sequence{
-		Path:    p,
-		notesOn: map[uint8]bool{},
+		Path: p,
 	}
 
 	err := s.parse()
 	if err != nil {
 		return nil, err
-	}
-
-	for i := range 127 {
-		s.notesOn[uint8(i)] = false
 	}
 
 	return &s, nil
@@ -44,38 +49,64 @@ func (s *Sequence) parse() error {
 		return err
 	}
 
-	s.Markdown = string(md)
 	re := regexp.MustCompile("(?s)```seq(.*?)\n```")
-	for _, b := range re.FindAllStringSubmatch(s.Markdown, -1) {
+	for _, b := range re.FindAllStringSubmatch(string(md), -1) {
 		lines := strings.Split(b[1], "\n")
-		s.Metadata = lines[0]
-		s.StepData = lines[1:]
-		err := s.parseMIDI()
-		if err != nil {
-			return err
+
+		metadata := lines[0]
+
+		switch {
+		case strings.HasPrefix(metadata, ".part"):
+
+			p := Part{
+				metadata: metadata,
+				StepData: lines[1:],
+				notesOn:  map[uint8]bool{},
+			}
+
+			for i := range 127 {
+				p.notesOn[uint8(i)] = false
+			}
+
+			err = p.parseMetadata()
+			if err != nil {
+				return err
+			}
+
+			err = p.parseMIDI()
+			if err != nil {
+				return err
+			}
+
+			s.Parts = append(s.Parts, p)
 		}
 	}
 
 	return nil
 }
 
-func (s *Sequence) parseMIDI() error {
+func (p *Part) parseMetadata() error {
+
+	return nil
+}
+
+func (p *Part) parseMIDI() error {
 
 	re := regexp.MustCompile(`([[:alpha:]][b,#]?)([[:digit:]]+)`)
 
-	for i, sd := range s.StepData {
-		s.StepMIDI = append(s.StepMIDI, []midi.Message{})
+	for i, sd := range p.StepData {
+		p.StepMIDI = append(p.StepMIDI, []midi.Message{})
 		for _, msgs := range re.FindAllStringSubmatch(sd, -1) {
 			note, err := midiNote(msgs[1], msgs[2])
 			if err != nil {
 				return err
 			}
-			if s.notesOn[*note] {
-				s.StepMIDI[i] = append(s.StepMIDI[i], midi.NoteOff(0, *note))
-				s.notesOn[*note] = false
+			if p.notesOn[*note] {
+				p.StepMIDI[i] = append(p.StepMIDI[i], midi.NoteOff(0, *note))
+				p.notesOn[*note] = false
 			} else {
-				s.StepMIDI[i] = append(s.StepMIDI[i], midi.NoteOn(0, *note, 100))
-				s.notesOn[*note] = true
+				p.StepMIDI[i] = append(p.StepMIDI[i], midi.NoteOn(0, *note, 100))
+				p.notesOn[*note] = true
 			}
 		}
 	}

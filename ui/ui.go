@@ -60,10 +60,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 
-		case "enter", " ":
-			err := m.device.Play(m.bpm, m.sequence)
-			if err != nil {
-				m.err = err
+		case "enter":
+			for _, p := range m.sequence.Parts {
+				err := m.device.Play(m.bpm, p)
+				if err != nil {
+					m.err = err
+				}
 			}
 		}
 	}
@@ -82,8 +84,11 @@ func (m model) View() string {
 		s += "\n\n"
 	}
 
-	for _, step := range m.sequence.StepData {
-		s += fmt.Sprintf("> %v\n", step)
+	for _, p := range m.sequence.Parts {
+		for _, step := range p.StepData {
+			s += fmt.Sprintf("%v\n", step)
+		}
+		s += "\n\n"
 	}
 
 	return s
