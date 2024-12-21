@@ -14,7 +14,7 @@ type model struct {
 	bpm      float64
 	device   device.Device
 	sequence sequence.Sequence
-	err      error
+	errs     []error
 }
 
 func Start() error {
@@ -63,9 +63,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "enter":
 			for _, a := range m.sequence.Arrangements {
-				err := m.device.Play(m.bpm, a)
-				if err != nil {
-					m.err = err
+				errs := m.device.Play(m.bpm, a)
+				if len(errs) > 0 {
+					m.errs = append(m.errs, errs...)
 				}
 			}
 		}
@@ -78,8 +78,8 @@ func (m model) View() string {
 
 	s := ""
 
-	if m.err != nil {
-		s += fmt.Sprintf("\n%s\n", m.err.Error())
+	for _, err := range m.errs {
+		s += fmt.Sprintf("\n%s\n", err.Error())
 	}
 
 	var parts []string

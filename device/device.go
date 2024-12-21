@@ -1,6 +1,7 @@
 package device
 
 import (
+	"sync"
 	"time"
 
 	"github.com/trotttrotttrott/seq/sequence"
@@ -30,29 +31,35 @@ func New() (*Device, error) {
 	}, nil
 }
 
-func (d *Device) Play(bpm float64, a sequence.Arrangement) error {
+func (d *Device) Play(bpm float64, a sequence.Arrangement) (errs []error) {
 
 	ticker := time.NewTicker(time.Duration(float64(time.Minute) / bpm))
 	defer ticker.Stop()
 
-	for _, parts := range a.Parts {
-
-		for _, part := range parts {
-
-			for i := range part.StepMIDI {
-				select {
-				case <-ticker.C:
-
-					for _, m := range part.StepMIDI[i] {
-
-						err := d.Send(m)
-						if err != nil {
-							return err
+	for _, stepParts := range a.Parts {
+		var wg sync.WaitGroup
+		for _, part := range stepParts {
+			wg.Add(1)
+			go func(part sequence.Part) {
+				defer wg.Done()
+				for _, sm := range part.StepMIDI {
+					select {
+					case <-ticker.C:
+						for _, m := range sm {
+							err := d.Send(m)
+							if err != nil {
+								errs = append(errs, err)
+								return
+							}
 						}
 					}
 				}
-			}
+			}(*part)
+		}
+		wg.Wait()
+		if len(errs) > 0 {
+			return
 		}
 	}
-	return nil
+	return
 }
