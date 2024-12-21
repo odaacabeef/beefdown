@@ -84,7 +84,7 @@ func (m model) View() string {
 
 	var parts []string
 	for _, p := range m.sequence.Parts {
-		part := fmt.Sprintf("\n%s\n\n", p.Name)
+		part := fmt.Sprintf("\n%s (ch:%d)\n\n", p.Name, p.Channel)
 		for i, step := range p.StepData {
 			part += fmt.Sprintf("%d  %s\n", i+1, step)
 		}

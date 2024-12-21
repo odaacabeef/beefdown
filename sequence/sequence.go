@@ -53,7 +53,10 @@ func (s *Sequence) parse() error {
 				p.notesOn[uint8(i)] = false
 			}
 
-			p.parseMetadata()
+			err = p.parseMetadata()
+			if err != nil {
+				return err
+			}
 
 			err = p.parseMIDI()
 			if err != nil {

@@ -8,7 +8,8 @@ import (
 )
 
 type Part struct {
-	Name string
+	Name    string
+	Channel uint8
 
 	metadata metadata
 	StepData []string
@@ -18,8 +19,14 @@ type Part struct {
 	notesOn map[uint8]bool
 }
 
-func (p *Part) parseMetadata() {
+func (p *Part) parseMetadata() error {
 	p.Name = p.metadata.Name()
+	ch, err := p.metadata.Channel()
+	if err != nil {
+		return err
+	}
+	p.Channel = ch
+	return nil
 }
 
 func (p *Part) parseMIDI() error {
@@ -34,10 +41,10 @@ func (p *Part) parseMIDI() error {
 				return err
 			}
 			if p.notesOn[*note] {
-				p.StepMIDI[i] = append(p.StepMIDI[i], midi.NoteOff(0, *note))
+				p.StepMIDI[i] = append(p.StepMIDI[i], midi.NoteOff(p.Channel-1, *note))
 				p.notesOn[*note] = false
 			} else {
-				p.StepMIDI[i] = append(p.StepMIDI[i], midi.NoteOn(0, *note, 100))
+				p.StepMIDI[i] = append(p.StepMIDI[i], midi.NoteOn(p.Channel-1, *note, 100))
 				p.notesOn[*note] = true
 			}
 		}
