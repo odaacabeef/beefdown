@@ -31,7 +31,7 @@ func New() (*Device, error) {
 	}, nil
 }
 
-func (d *Device) Play(bpm float64, a sequence.Arrangement) (errs []error) {
+func (d *Device) Play(bpm float64, a sequence.Arrangement, errCh chan (error)) {
 
 	ticker := time.NewTicker(time.Duration(float64(time.Minute) / bpm))
 	defer ticker.Stop()
@@ -48,7 +48,7 @@ func (d *Device) Play(bpm float64, a sequence.Arrangement) (errs []error) {
 						for _, m := range sm {
 							err := d.Send(m)
 							if err != nil {
-								errs = append(errs, err)
+								errCh <- err
 								return
 							}
 						}
@@ -57,9 +57,8 @@ func (d *Device) Play(bpm float64, a sequence.Arrangement) (errs []error) {
 			}(*part)
 		}
 		wg.Wait()
-		if len(errs) > 0 {
+		if len(errCh) > 0 {
 			return
 		}
 	}
-	return
 }

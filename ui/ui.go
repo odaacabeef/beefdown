@@ -15,6 +15,7 @@ type model struct {
 	device   device.Device
 	sequence sequence.Sequence
 	errs     []error
+	errCh    chan (error)
 }
 
 func Start() error {
@@ -44,6 +45,7 @@ func initialModel() (*model, error) {
 		bpm:      120,
 		device:   *d,
 		sequence: *s,
+		errCh:    make(chan error),
 	}, nil
 }
 
@@ -62,12 +64,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "enter":
-			for _, a := range m.sequence.Arrangements {
-				errs := m.device.Play(m.bpm, a)
-				if len(errs) > 0 {
-					m.errs = append(m.errs, errs...)
-				}
-			}
+			a := m.sequence.Arrangements[0]
+			go m.device.Play(m.bpm, a, m.errCh)
 		}
 	}
 
