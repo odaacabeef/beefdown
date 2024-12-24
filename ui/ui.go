@@ -15,7 +15,6 @@ type model struct {
 	device   *device.Device
 	sequence *sequence.Sequence
 	errs     []error
-	errCh    chan (error)
 }
 
 func Start() error {
@@ -45,24 +44,32 @@ func initialModel() (*model, error) {
 		bpm:      120,
 		device:   d,
 		sequence: s,
-		errCh:    make(chan error),
 	}, nil
 }
 
+type deviceStop bool
+
+func listenForDeviceStop(stop chan bool) tea.Cmd {
+	return func() tea.Msg {
+		return deviceStop(<-stop)
+	}
+}
+
 func (m model) Init() tea.Cmd {
-	return nil
+	return listenForDeviceStop(m.device.Stop)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+
+	case deviceStop:
+		return m, listenForDeviceStop(m.device.Stop)
 
 	case tea.KeyMsg:
 
 		switch msg.String() {
 
 		case "ctrl+c", "q":
-
-			// TODO: blocks if attempted while device playing
 			return m, tea.Quit
 
 		case "enter":

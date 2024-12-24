@@ -33,6 +33,7 @@ func New() (*Device, error) {
 
 	return &Device{
 		Send:  send,
+		Stop:  make(chan bool),
 		state: "stopped",
 	}, nil
 }
@@ -66,17 +67,16 @@ func (d *Device) Play(bpm float64, a sequence.Arrangement) {
 		return
 	}
 
-	d.Stop = make(chan bool, 1)
-
 	go func() {
 
 		ticker := time.NewTicker(time.Duration(float64(time.Minute) / bpm))
 		defer ticker.Stop()
 		defer d.stop()
+		defer func() { d.Stop <- true }()
 
 		for _, stepParts := range a.Parts {
 			if d.Stopped() {
-				break
+				return
 			}
 			var wg sync.WaitGroup
 			for _, part := range stepParts {
