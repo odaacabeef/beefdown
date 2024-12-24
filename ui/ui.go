@@ -12,8 +12,8 @@ import (
 
 type model struct {
 	bpm      float64
-	device   device.Device
-	sequence sequence.Sequence
+	device   *device.Device
+	sequence *sequence.Sequence
 	errs     []error
 	errCh    chan (error)
 }
@@ -43,8 +43,8 @@ func initialModel() (*model, error) {
 
 	return &model{
 		bpm:      120,
-		device:   *d,
-		sequence: *s,
+		device:   d,
+		sequence: s,
 		errCh:    make(chan error),
 	}, nil
 }
