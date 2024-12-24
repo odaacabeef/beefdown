@@ -61,11 +61,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 
 		case "ctrl+c", "q":
+
+			// TODO: blocks if attempted while device playing
 			return m, tea.Quit
 
 		case "enter":
 			a := m.sequence.Arrangements[0]
-			go m.device.Play(m.bpm, a, m.errCh)
+			m.device.Play(m.bpm, a)
+
+		case " ":
+			if m.device.Playing() {
+				m.device.Stop <- true
+			}
 		}
 	}
 
@@ -74,7 +81,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 
-	s := ""
+	s := "\n"
+
+	s += fmt.Sprintf("  state: %s\n", m.device.State())
 
 	for _, err := range m.errs {
 		s += fmt.Sprintf("\n%s\n", err.Error())

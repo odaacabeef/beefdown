@@ -13,6 +13,11 @@ import (
 
 type Device struct {
 	Send func(midi.Message) error
+
+	state string
+
+	Stop   chan (bool)
+	Errors chan (error)
 }
 
 func New() (*Device, error) {
@@ -27,38 +32,78 @@ func New() (*Device, error) {
 	}
 
 	return &Device{
-		Send: send,
+		Send:  send,
+		state: "stopped",
 	}, nil
 }
 
-func (d *Device) Play(bpm float64, a sequence.Arrangement, errCh chan (error)) {
+func (d *Device) State() string {
+	return d.state
+}
 
-	ticker := time.NewTicker(time.Duration(float64(time.Minute) / bpm))
-	defer ticker.Stop()
+func (d *Device) Playing() bool {
+	return d.state == "playing"
+}
 
-	for _, stepParts := range a.Parts {
-		var wg sync.WaitGroup
-		for _, part := range stepParts {
-			wg.Add(1)
-			go func(part sequence.Part) {
-				defer wg.Done()
-				for _, sm := range part.StepMIDI {
-					select {
-					case <-ticker.C:
-						for _, m := range sm {
-							err := d.Send(m)
-							if err != nil {
-								errCh <- err
-								return
+func (d *Device) play() {
+	d.state = "playing"
+}
+
+func (d *Device) Stopped() bool {
+	return d.state == "stopped"
+}
+
+func (d *Device) stop() {
+	d.state = "stopped"
+}
+
+func (d *Device) Play(bpm float64, a sequence.Arrangement) {
+
+	switch d.state {
+	case "stopped":
+		d.play()
+	case "playing":
+		return
+	}
+
+	d.Stop = make(chan bool, 1)
+
+	go func() {
+
+		ticker := time.NewTicker(time.Duration(float64(time.Minute) / bpm))
+		defer ticker.Stop()
+		defer d.stop()
+
+		for _, stepParts := range a.Parts {
+			if d.Stopped() {
+				break
+			}
+			var wg sync.WaitGroup
+			for _, part := range stepParts {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for _, sm := range part.StepMIDI {
+						select {
+						case <-ticker.C:
+							for _, m := range sm {
+								err := d.Send(m)
+								if err != nil {
+									d.Errors <- err
+									return
+								}
 							}
+						case <-d.Stop:
+							d.stop()
+							return
 						}
 					}
-				}
-			}(*part)
+				}()
+			}
+			wg.Wait()
+			if len(d.Errors) > 0 {
+				return
+			}
 		}
-		wg.Wait()
-		if len(errCh) > 0 {
-			return
-		}
-	}
+	}()
 }
