@@ -69,37 +69,37 @@ func (d *Device) Play(ctx context.Context, bpm float64, a sequence.Arrangement) 
 		ticker := time.NewTicker(time.Duration(float64(time.Minute) / bpm))
 		defer ticker.Stop()
 		defer d.stop()
-		// defer func() { ctx.Cancel() <- true }()
 
 		for _, stepParts := range a.Parts {
-			if d.Stopped() {
+			select {
+			case <-ctx.Done():
 				return
-			}
-			var wg sync.WaitGroup
-			for _, part := range stepParts {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					for _, sm := range part.StepMIDI {
-						select {
-						case <-ticker.C:
-							for _, m := range sm {
-								err := d.Send(m)
-								if err != nil {
-									d.Errors <- err
-									return
+			default:
+				var wg sync.WaitGroup
+				for _, part := range stepParts {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						for _, sm := range part.StepMIDI {
+							select {
+							case <-ctx.Done():
+								return
+							case <-ticker.C:
+								for _, m := range sm {
+									err := d.Send(m)
+									if err != nil {
+										d.Errors <- err
+										return
+									}
 								}
 							}
-						case <-ctx.Done():
-							d.stop()
-							return
 						}
-					}
-				}()
-			}
-			wg.Wait()
-			if len(d.Errors) > 0 {
-				return
+					}()
+				}
+				wg.Wait()
+				if len(d.Errors) > 0 {
+					return
+				}
 			}
 		}
 	}()
