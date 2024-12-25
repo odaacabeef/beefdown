@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/trotttrotttrott/seq/device"
@@ -14,7 +15,11 @@ type model struct {
 	bpm      float64
 	device   *device.Device
 	sequence *sequence.Sequence
-	errs     []error
+
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	errs []error
 }
 
 func Start() error {
@@ -40,30 +45,34 @@ func initialModel() (*model, error) {
 		return nil, err
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &model{
 		bpm:      120,
 		device:   d,
 		sequence: s,
+		ctx:      ctx,
+		cancel:   cancel,
 	}, nil
 }
 
-type deviceStop bool
+type deviceStop <-chan struct{}
 
-func listenForDeviceStop(stop chan bool) tea.Cmd {
+func listenForDeviceDone(ctx context.Context) tea.Cmd {
 	return func() tea.Msg {
-		return deviceStop(<-stop)
+		return deviceStop(ctx.Done())
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return listenForDeviceStop(m.device.Stop)
+	return listenForDeviceDone(m.ctx)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case deviceStop:
-		return m, listenForDeviceStop(m.device.Stop)
+		return m, listenForDeviceDone(m.ctx)
 
 	case tea.KeyMsg:
 
@@ -74,11 +83,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "enter":
 			a := m.sequence.Arrangements[0]
-			m.device.Play(m.bpm, a)
+			m.ctx, m.cancel = context.WithCancel(context.Background())
+			m.device.Play(m.ctx, m.bpm, a)
 
 		case " ":
 			if m.device.Playing() {
-				m.device.Stop <- true
+				m.cancel()
 			}
 		}
 	}

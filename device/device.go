@@ -1,6 +1,7 @@
 package device
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -12,11 +13,8 @@ import (
 )
 
 type Device struct {
-	Send func(midi.Message) error
-
-	state string
-
-	Stop   chan (bool)
+	Send   func(midi.Message) error
+	state  string
 	Errors chan (error)
 }
 
@@ -33,7 +31,6 @@ func New() (*Device, error) {
 
 	return &Device{
 		Send:  send,
-		Stop:  make(chan bool),
 		state: "stopped",
 	}, nil
 }
@@ -58,7 +55,7 @@ func (d *Device) stop() {
 	d.state = "stopped"
 }
 
-func (d *Device) Play(bpm float64, a sequence.Arrangement) {
+func (d *Device) Play(ctx context.Context, bpm float64, a sequence.Arrangement) {
 
 	switch d.state {
 	case "stopped":
@@ -72,7 +69,7 @@ func (d *Device) Play(bpm float64, a sequence.Arrangement) {
 		ticker := time.NewTicker(time.Duration(float64(time.Minute) / bpm))
 		defer ticker.Stop()
 		defer d.stop()
-		defer func() { d.Stop <- true }()
+		// defer func() { ctx.Cancel() <- true }()
 
 		for _, stepParts := range a.Parts {
 			if d.Stopped() {
@@ -93,7 +90,7 @@ func (d *Device) Play(bpm float64, a sequence.Arrangement) {
 									return
 								}
 							}
-						case <-d.Stop:
+						case <-ctx.Done():
 							d.stop()
 							return
 						}
