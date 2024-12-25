@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/trotttrotttrott/seq/device"
 	"github.com/trotttrotttrott/seq/sequence"
@@ -29,7 +30,7 @@ func Start() error {
 		return err
 	}
 
-	p := tea.NewProgram(m)
+	p := tea.NewProgram(m, tea.WithAltScreen())
 	_, err = p.Run()
 	return err
 }
@@ -98,41 +99,39 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 
-	s := "\n"
+	st := style(lipgloss.NewStyle())
 
-	s += fmt.Sprintf("  state: %s\n", m.device.State())
+	s := ""
 
-	for _, err := range m.errs {
-		s += fmt.Sprintf("\n%s\n", err.Error())
+	s += st.state().Render(fmt.Sprintf("state: %s", m.device.State()))
+
+	if len(m.errs) > 0 {
+		s += st.errors().Render(fmt.Sprintf("%v", m.errs))
 	}
 
-	var parts []string
+	var blocks []string
+
 	for _, p := range m.sequence.Parts {
-		part := fmt.Sprintf("\n%s (ch:%d)\n\n", p.Name, p.Channel)
+		part := fmt.Sprintf("%s (ch:%d)\n\n", p.Name, p.Channel)
+		var steps []string
 		for i, step := range p.StepData {
-			part += fmt.Sprintf("%d  %s\n", i+1, step)
+			steps = append(steps, fmt.Sprintf("%d  %s", i+1, step))
 		}
-		parts = append(parts, lipgloss.NewStyle().
-			PaddingRight(5).
-			PaddingLeft(2).
-			Render(part))
+		part += strings.Join(steps, "\n")
+		blocks = append(blocks, st.block().Render(part))
 	}
 
-	s += lipgloss.JoinHorizontal(lipgloss.Bottom, parts...)
-
-	var arrangements []string
 	for _, a := range m.sequence.Arrangements {
-		arrangement := fmt.Sprintf("\n%s\n\n", a.Name)
+		arrangement := fmt.Sprintf("%s\n\n", a.Name)
+		var steps []string
 		for i, step := range a.StepData {
-			arrangement += fmt.Sprintf("%d  %s\n", i+1, step)
+			steps = append(steps, fmt.Sprintf("%d  %s", i+1, step))
 		}
-		arrangements = append(arrangements, lipgloss.NewStyle().
-			PaddingRight(5).
-			PaddingLeft(2).
-			Render(arrangement))
+		arrangement += strings.Join(steps, "\n")
+		blocks = append(blocks, st.block().Render(arrangement))
 	}
 
-	s += lipgloss.JoinVertical(lipgloss.Bottom, arrangements...)
+	s += lipgloss.JoinHorizontal(lipgloss.Top, blocks...)
 
 	return s
 }
