@@ -46,11 +46,6 @@ func (s *Sequence) parse() error {
 			p := Part{
 				metadata: metadata(m),
 				StepData: lines[1:],
-				notesOn:  map[uint8]bool{},
-			}
-
-			for i := range 127 {
-				p.notesOn[uint8(i)] = false
 			}
 
 			err = p.parseMetadata()

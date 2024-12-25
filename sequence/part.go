@@ -15,8 +15,6 @@ type Part struct {
 	StepData []string
 
 	StepMIDI [][]midi.Message
-
-	notesOn map[uint8]bool
 }
 
 func (p *Part) parseMetadata() error {
@@ -33,6 +31,8 @@ func (p *Part) parseMIDI() error {
 
 	re := regexp.MustCompile(`([[:alpha:]][b,#]?)([[:digit:]]+)`)
 
+	notesOn := map[uint8]bool{}
+
 	for i, sd := range p.StepData {
 		p.StepMIDI = append(p.StepMIDI, []midi.Message{})
 		for _, msgs := range re.FindAllStringSubmatch(sd, -1) {
@@ -40,12 +40,12 @@ func (p *Part) parseMIDI() error {
 			if err != nil {
 				return err
 			}
-			if p.notesOn[*note] {
+			if notesOn[*note] {
 				p.StepMIDI[i] = append(p.StepMIDI[i], midi.NoteOff(p.Channel-1, *note))
-				p.notesOn[*note] = false
+				notesOn[*note] = false
 			} else {
 				p.StepMIDI[i] = append(p.StepMIDI[i], midi.NoteOn(p.Channel-1, *note, 100))
-				p.notesOn[*note] = true
+				notesOn[*note] = true
 			}
 		}
 	}
