@@ -55,6 +55,15 @@ func (d *Device) stop() {
 	d.state = "stopped"
 }
 
+func (d *Device) silence() {
+	for _, m := range midi.SilenceChannel(-1) {
+		err := d.Send(m)
+		if err != nil {
+			d.Errors <- err
+		}
+	}
+}
+
 func (d *Device) Play(ctx context.Context, bpm float64, a sequence.Arrangement) {
 
 	switch d.state {
@@ -69,6 +78,7 @@ func (d *Device) Play(ctx context.Context, bpm float64, a sequence.Arrangement) 
 		ticker := time.NewTicker(time.Duration(float64(time.Minute) / bpm))
 		defer ticker.Stop()
 		defer d.stop()
+		defer d.silence()
 
 		for _, stepParts := range a.Parts {
 			select {
