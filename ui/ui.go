@@ -58,21 +58,21 @@ func initialModel() (*model, error) {
 
 type deviceStop <-chan struct{}
 
-func listenForDeviceDone(ctx context.Context) tea.Cmd {
+func listenForDeviceStop(ctx context.Context) tea.Cmd {
 	return func() tea.Msg {
 		return deviceStop(ctx.Done())
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return listenForDeviceDone(m.ctx)
+	return listenForDeviceStop(m.ctx)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case deviceStop:
-		return m, listenForDeviceDone(m.ctx)
+		return m, listenForDeviceStop(m.ctx)
 
 	case tea.KeyMsg:
 
