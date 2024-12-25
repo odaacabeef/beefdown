@@ -81,13 +81,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 
-		case "enter":
-			a := m.sequence.Arrangements[0]
-			m.ctx, m.cancel = context.WithCancel(context.Background())
-			m.device.Play(m.ctx, m.bpm, a)
-
 		case " ":
-			if m.device.Playing() {
+			switch {
+			case m.device.Stopped():
+				a := m.sequence.Arrangements[0]
+				m.ctx, m.cancel = context.WithCancel(context.Background())
+				m.device.Play(m.ctx, m.bpm, a)
+			case m.device.Playing():
 				m.cancel()
 			}
 		}
