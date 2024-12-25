@@ -66,10 +66,10 @@ func (d *Device) silence() {
 
 func (d *Device) Play(ctx context.Context, bpm float64, a sequence.Arrangement) {
 
-	switch d.state {
-	case "stopped":
+	switch {
+	case d.Stopped():
 		d.play()
-	case "playing":
+	case d.Playing():
 		return
 	}
 
