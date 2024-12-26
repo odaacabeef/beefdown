@@ -1,8 +1,10 @@
 package sequence
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"gitlab.com/gomidi/midi/v2"
 )
@@ -86,4 +88,14 @@ func midiNote(name string, octave string) (*uint8, error) {
 		note = midi.B(oct)
 	}
 	return &note, nil
+}
+
+func (p Part) String() (s string) {
+	s += fmt.Sprintf("%s (ch:%d)\n\n", p.Name, p.Channel)
+	var steps []string
+	for i, step := range p.StepData {
+		steps = append(steps, fmt.Sprintf("%d  %s", i+1, step))
+	}
+	s += strings.Join(steps, "\n")
+	return
 }

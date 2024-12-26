@@ -11,6 +11,12 @@ type Sequence struct {
 
 	Parts        []Part
 	Arrangements []Arrangement
+
+	Playable []Playable
+}
+
+type Playable interface {
+	String() string
 }
 
 func New(p string) (*Sequence, error) {
@@ -59,6 +65,7 @@ func (s *Sequence) parse() error {
 			}
 
 			s.Parts = append(s.Parts, p)
+			s.Playable = append(s.Playable, p)
 
 		case strings.HasPrefix(m, ".arrangement"):
 
@@ -71,6 +78,7 @@ func (s *Sequence) parse() error {
 			a.parseParts(*s)
 
 			s.Arrangements = append(s.Arrangements, a)
+			s.Playable = append(s.Playable, a)
 		}
 	}
 

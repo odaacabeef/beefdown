@@ -1,6 +1,9 @@
 package sequence
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 type Arrangement struct {
 	Name string
@@ -26,4 +29,14 @@ func (a *Arrangement) parseParts(s Sequence) {
 			}
 		}
 	}
+}
+
+func (a Arrangement) String() (s string) {
+	s += fmt.Sprintf("%s\n\n", a.Name)
+	var steps []string
+	for i, step := range a.StepData {
+		steps = append(steps, fmt.Sprintf("%d  %s", i+1, step))
+	}
+	s += strings.Join(steps, "\n")
+	return
 }

@@ -3,7 +3,6 @@ package ui
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/trotttrotttrott/seq/device"
 	"github.com/trotttrotttrott/seq/sequence"
@@ -112,29 +111,11 @@ func (m model) View() string {
 		s += st.errors().Render(fmt.Sprintf("%v", m.errs))
 	}
 
-	var blocks []string
-
-	for _, p := range m.sequence.Parts {
-		part := fmt.Sprintf("%s (ch:%d)\n\n", p.Name, p.Channel)
-		var steps []string
-		for i, step := range p.StepData {
-			steps = append(steps, fmt.Sprintf("%d  %s", i+1, step))
-		}
-		part += strings.Join(steps, "\n")
-		blocks = append(blocks, st.block().Render(part))
+	var playable []string
+	for _, p := range m.sequence.Playable {
+		playable = append(playable, st.playable().Render(p.String()))
 	}
-
-	for _, a := range m.sequence.Arrangements {
-		arrangement := fmt.Sprintf("%s\n\n", a.Name)
-		var steps []string
-		for i, step := range a.StepData {
-			steps = append(steps, fmt.Sprintf("%d  %s", i+1, step))
-		}
-		arrangement += strings.Join(steps, "\n")
-		blocks = append(blocks, st.block().Render(arrangement))
-	}
-
-	s += lipgloss.JoinHorizontal(lipgloss.Top, blocks...)
+	s += lipgloss.JoinHorizontal(lipgloss.Top, playable...)
 
 	return s
 }

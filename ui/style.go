@@ -16,7 +16,7 @@ func (s style) errors() lipgloss.Style {
 		Margin(0, 1)
 }
 
-func (s style) block() lipgloss.Style {
+func (s style) playable() lipgloss.Style {
 	return lipgloss.NewStyle().
 		Padding(0, 1).
 		Margin(1)
