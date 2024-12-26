@@ -9,14 +9,17 @@ import (
 type Sequence struct {
 	Path string
 
-	Parts        []Part
-	Arrangements []Arrangement
+	Parts        []*Part
+	Arrangements []*Arrangement
 
 	Playable []Playable
 }
 
 type Playable interface {
 	String() string
+	CurrentStep() *int
+	IncrementStep()
+	ClearStep()
 }
 
 func New(p string) (*Sequence, error) {
@@ -64,8 +67,8 @@ func (s *Sequence) parse() error {
 				return err
 			}
 
-			s.Parts = append(s.Parts, p)
-			s.Playable = append(s.Playable, p)
+			s.Parts = append(s.Parts, &p)
+			s.Playable = append(s.Playable, &p)
 
 		case strings.HasPrefix(m, ".arrangement"):
 
@@ -77,8 +80,8 @@ func (s *Sequence) parse() error {
 			a.parseMetadata()
 			a.parseParts(*s)
 
-			s.Arrangements = append(s.Arrangements, a)
-			s.Playable = append(s.Playable, a)
+			s.Arrangements = append(s.Arrangements, &a)
+			s.Playable = append(s.Playable, &a)
 		}
 	}
 

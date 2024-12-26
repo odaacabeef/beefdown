@@ -17,6 +17,8 @@ type Part struct {
 	StepData []string
 
 	StepMIDI [][]midi.Message
+
+	currentStep *int
 }
 
 func (p *Part) parseMetadata() error {
@@ -90,12 +92,33 @@ func midiNote(name string, octave string) (*uint8, error) {
 	return &note, nil
 }
 
-func (p Part) String() (s string) {
+func (p *Part) String() (s string) {
 	s += fmt.Sprintf("%s (ch:%d)\n\n", p.Name, p.Channel)
 	var steps []string
 	for i, step := range p.StepData {
-		steps = append(steps, fmt.Sprintf("%d  %s", i+1, step))
+		current := " "
+		if p.currentStep != nil && *p.currentStep == i {
+			current = ">"
+		}
+		steps = append(steps, fmt.Sprintf("%s %d  %s", current, i+1, step))
 	}
 	s += strings.Join(steps, "\n")
 	return
+}
+
+func (p *Part) CurrentStep() *int {
+	return p.currentStep
+}
+
+func (p *Part) IncrementStep() {
+	if p.currentStep == nil {
+		step := 0
+		p.currentStep = &step
+	} else {
+		*p.currentStep++
+	}
+}
+
+func (p *Part) ClearStep() {
+	p.currentStep = nil
 }

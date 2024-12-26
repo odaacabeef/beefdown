@@ -12,6 +12,8 @@ type Arrangement struct {
 	StepData []string
 
 	Parts [][]*Part
+
+	currentStep *int
 }
 
 func (a *Arrangement) parseMetadata() {
@@ -24,19 +26,40 @@ func (a *Arrangement) parseParts(s Sequence) {
 		for _, name := range strings.Fields(sd) {
 			for _, p := range s.Parts {
 				if p.Name == name {
-					a.Parts[i] = append(a.Parts[i], &p)
+					a.Parts[i] = append(a.Parts[i], p)
 				}
 			}
 		}
 	}
 }
 
-func (a Arrangement) String() (s string) {
+func (a *Arrangement) String() (s string) {
 	s += fmt.Sprintf("%s\n\n", a.Name)
 	var steps []string
 	for i, step := range a.StepData {
-		steps = append(steps, fmt.Sprintf("%d  %s", i+1, step))
+		current := " "
+		if a.currentStep != nil && *a.currentStep == i {
+			current = ">"
+		}
+		steps = append(steps, fmt.Sprintf("%s %d  %s", current, i+1, step))
 	}
 	s += strings.Join(steps, "\n")
 	return
+}
+
+func (a *Arrangement) CurrentStep() *int {
+	return a.currentStep
+}
+
+func (a *Arrangement) IncrementStep() {
+	if a.currentStep == nil {
+		step := 0
+		a.currentStep = &step
+	} else {
+		*a.currentStep++
+	}
+}
+
+func (a *Arrangement) ClearStep() {
+	a.currentStep = nil
 }

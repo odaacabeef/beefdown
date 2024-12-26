@@ -77,45 +77,49 @@ func (d *Device) Play(ctx context.Context, bpm float64, playable any) {
 	d.ticker = time.NewTicker(time.Duration(float64(time.Minute) / bpm))
 
 	switch playable.(type) {
-	case sequence.Arrangement:
-		go d.playArrangement(ctx, playable.(sequence.Arrangement))
-	case sequence.Part:
-		p := playable.(sequence.Part)
+	case *sequence.Arrangement:
+		go d.playArrangement(ctx, playable.(*sequence.Arrangement))
+	case *sequence.Part:
+		p := playable.(*sequence.Part)
 		a := sequence.Arrangement{
 			Parts: [][]*sequence.Part{
 				{
-					&p,
+					p,
 				},
 			},
 		}
-		go d.playArrangement(ctx, a)
+		go d.playArrangement(ctx, &a)
 	default:
 		d.stop()
 		return
 	}
 }
 
-func (d *Device) playArrangement(ctx context.Context, a sequence.Arrangement) {
+func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 
 	defer d.ticker.Stop()
 	defer d.stop()
 	defer d.silence()
+	defer a.ClearStep()
 
 	for _, stepParts := range a.Parts {
+		a.IncrementStep()
 		select {
 		case <-ctx.Done():
 			return
 		default:
 			var wg sync.WaitGroup
-			for _, part := range stepParts {
+			for _, p := range stepParts {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					for _, sm := range part.StepMIDI {
+					defer p.ClearStep()
+					for _, sm := range p.StepMIDI {
 						select {
 						case <-ctx.Done():
 							return
 						case <-d.ticker.C:
+							p.IncrementStep()
 							for _, m := range sm {
 								err := d.Send(m)
 								if err != nil {
