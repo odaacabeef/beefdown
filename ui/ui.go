@@ -16,6 +16,9 @@ type model struct {
 	device   *device.Device
 	sequence *sequence.Sequence
 
+	selected int
+	playing  *int
+
 	ctx    context.Context
 	cancel context.CancelFunc
 
@@ -72,6 +75,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case deviceStop:
+		if m.device.Stopped() {
+			m.playing = nil
+		}
 		return m, listenForDeviceStop(m.ctx)
 
 	case tea.KeyMsg:
@@ -81,15 +87,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 
+		case "h", "left":
+			if m.selected > 0 {
+				m.selected--
+			}
+
+		case "l", "right":
+			if m.selected < len(m.sequence.Playable)-1 {
+				m.selected++
+			}
+
 		case " ":
 			switch {
 			case m.device.Stopped():
-
-				// a := m.sequence.Arrangements[0]
-				a := m.sequence.Parts[0]
-
+				p := m.sequence.Playable[m.selected]
+				m.playing = &m.selected
 				m.ctx, m.cancel = context.WithCancel(context.Background())
-				m.device.Play(m.ctx, m.bpm, a)
+				m.device.Play(m.ctx, m.bpm, p)
 			case m.device.Playing():
 				m.cancel()
 			}
@@ -112,9 +126,10 @@ func (m model) View() string {
 	}
 
 	var playable []string
-	for _, p := range m.sequence.Playable {
-		playable = append(playable, st.playable().Render(p.String()))
+	for i, p := range m.sequence.Playable {
+		playable = append(playable, st.playable(i == m.selected, (m.playing != nil && i == *m.playing)).Render(p.String()))
 	}
+
 	s += lipgloss.JoinHorizontal(lipgloss.Top, playable...)
 
 	return s
