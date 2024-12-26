@@ -85,7 +85,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case " ":
 			switch {
 			case m.device.Stopped():
-				a := m.sequence.Arrangements[0]
+
+				// a := m.sequence.Arrangements[0]
+				a := m.sequence.Parts[0]
+
 				m.ctx, m.cancel = context.WithCancel(context.Background())
 				m.device.Play(m.ctx, m.bpm, a)
 			case m.device.Playing():

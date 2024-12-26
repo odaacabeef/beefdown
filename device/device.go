@@ -14,6 +14,7 @@ import (
 
 type Device struct {
 	Send   func(midi.Message) error
+	ticker *time.Ticker
 	state  string
 	Errors chan (error)
 }
@@ -64,7 +65,7 @@ func (d *Device) silence() {
 	}
 }
 
-func (d *Device) Play(ctx context.Context, bpm float64, a sequence.Arrangement) {
+func (d *Device) Play(ctx context.Context, bpm float64, playable any) {
 
 	switch {
 	case d.Stopped():
@@ -73,44 +74,63 @@ func (d *Device) Play(ctx context.Context, bpm float64, a sequence.Arrangement) 
 		return
 	}
 
-	go func() {
+	d.ticker = time.NewTicker(time.Duration(float64(time.Minute) / bpm))
 
-		ticker := time.NewTicker(time.Duration(float64(time.Minute) / bpm))
-		defer ticker.Stop()
-		defer d.stop()
-		defer d.silence()
+	switch playable.(type) {
+	case sequence.Arrangement:
+		go d.playArrangement(ctx, playable.(sequence.Arrangement))
+	case sequence.Part:
+		p := playable.(sequence.Part)
+		a := sequence.Arrangement{
+			Parts: [][]*sequence.Part{
+				{
+					&p,
+				},
+			},
+		}
+		go d.playArrangement(ctx, a)
+	default:
+		d.stop()
+		return
+	}
+}
 
-		for _, stepParts := range a.Parts {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				var wg sync.WaitGroup
-				for _, part := range stepParts {
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
-						for _, sm := range part.StepMIDI {
-							select {
-							case <-ctx.Done():
-								return
-							case <-ticker.C:
-								for _, m := range sm {
-									err := d.Send(m)
-									if err != nil {
-										d.Errors <- err
-										return
-									}
+func (d *Device) playArrangement(ctx context.Context, a sequence.Arrangement) {
+
+	defer d.ticker.Stop()
+	defer d.stop()
+	defer d.silence()
+
+	for _, stepParts := range a.Parts {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			var wg sync.WaitGroup
+			for _, part := range stepParts {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for _, sm := range part.StepMIDI {
+						select {
+						case <-ctx.Done():
+							return
+						case <-d.ticker.C:
+							for _, m := range sm {
+								err := d.Send(m)
+								if err != nil {
+									d.Errors <- err
+									return
 								}
 							}
 						}
-					}()
-				}
-				wg.Wait()
-				if len(d.Errors) > 0 {
-					return
-				}
+					}
+				}()
+			}
+			wg.Wait()
+			if len(d.Errors) > 0 {
+				return
 			}
 		}
-	}()
+	}
 }
