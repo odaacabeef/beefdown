@@ -65,6 +65,13 @@ func (d *Device) silence() {
 	}
 }
 
+func (d *Device) TickerC() <-chan time.Time {
+	if d.ticker != nil {
+		return d.ticker.C
+	}
+	return nil
+}
+
 func (d *Device) Play(ctx context.Context, bpm float64, playable any) {
 
 	switch {

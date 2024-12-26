@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/trotttrotttrott/seq/device"
 	"github.com/trotttrotttrott/seq/sequence"
@@ -48,37 +49,33 @@ func initialModel() (*model, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-
 	return &model{
 		bpm:      120,
 		device:   d,
 		sequence: s,
-		ctx:      ctx,
-		cancel:   cancel,
 	}, nil
 }
 
-type deviceStop <-chan struct{}
+type deviceTick <-chan time.Time
 
-func listenForDeviceStop(ctx context.Context) tea.Cmd {
+func listenForDeviceTick(c <-chan time.Time) tea.Cmd {
 	return func() tea.Msg {
-		return deviceStop(ctx.Done())
+		return deviceTick(c)
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return listenForDeviceStop(m.ctx)
+	return listenForDeviceTick(nil)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
-	case deviceStop:
+	case deviceTick:
 		if m.device.Stopped() {
 			m.playing = nil
 		}
-		return m, listenForDeviceStop(m.ctx)
+		return m, listenForDeviceTick(m.device.TickerC())
 
 	case tea.KeyMsg:
 
