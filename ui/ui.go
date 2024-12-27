@@ -113,6 +113,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.selected++
 			}
 
+		case "0":
+			m.selected = 0
+
+		case "$":
+			m.selected = len(m.sequence.Playable) - 1
+
 		case " ":
 			switch {
 			case m.device.Stopped():
