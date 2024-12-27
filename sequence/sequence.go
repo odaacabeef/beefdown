@@ -18,7 +18,7 @@ type Sequence struct {
 type Playable interface {
 	String() string
 	CurrentStep() *int
-	IncrementStep()
+	UpdateStep(int)
 	ClearStep()
 }
 

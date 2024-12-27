@@ -51,15 +51,15 @@ func (a *Arrangement) CurrentStep() *int {
 	return a.currentStep
 }
 
-func (a *Arrangement) IncrementStep() {
-	if a.currentStep == nil {
-		step := 0
-		a.currentStep = &step
-	} else {
-		*a.currentStep++
-	}
+func (a *Arrangement) UpdateStep(i int) {
+	a.currentStep = &i
 }
 
 func (a *Arrangement) ClearStep() {
 	a.currentStep = nil
+	for _, stepParts := range a.Parts {
+		for _, p := range stepParts {
+			p.ClearStep()
+		}
+	}
 }

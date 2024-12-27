@@ -109,8 +109,8 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 	defer d.silence()
 	defer a.ClearStep()
 
-	for _, stepParts := range a.Parts {
-		a.IncrementStep()
+	for aidx, stepParts := range a.Parts {
+		a.UpdateStep(aidx)
 		select {
 		case <-ctx.Done():
 			return
@@ -118,18 +118,17 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 			var wg sync.WaitGroup
 			var tick []chan bool
 			stepDone := make(chan bool)
-			for i, p := range stepParts {
+			for pidx, p := range stepParts {
 				wg.Add(1)
 				tick = append(tick, make(chan bool))
 				go func(t chan bool) {
 					defer wg.Done()
-					defer p.ClearStep()
-					for _, sm := range p.StepMIDI {
+					for sidx, sm := range p.StepMIDI {
 						select {
 						case <-ctx.Done():
 							return
 						case <-t:
-							p.IncrementStep()
+							p.UpdateStep(sidx)
 							for _, m := range sm {
 								err := d.Send(m)
 								if err != nil {
@@ -139,7 +138,7 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 							}
 						}
 					}
-				}(tick[i])
+				}(tick[pidx])
 			}
 			go func() {
 				for {

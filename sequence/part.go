@@ -75,13 +75,8 @@ func (p *Part) CurrentStep() *int {
 	return p.currentStep
 }
 
-func (p *Part) IncrementStep() {
-	if p.currentStep == nil {
-		step := 0
-		p.currentStep = &step
-	} else {
-		*p.currentStep++
-	}
+func (p *Part) UpdateStep(i int) {
+	p.currentStep = &i
 }
 
 func (p *Part) ClearStep() {
