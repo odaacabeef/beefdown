@@ -44,16 +44,26 @@ func initialModel() (*model, error) {
 		return nil, err
 	}
 
-	s, err := sequence.New("_test/test.md")
+	m := model{
+		bpm:    120,
+		device: d,
+	}
+
+	err = m.loadSequence()
 	if err != nil {
 		return nil, err
 	}
 
-	return &model{
-		bpm:      120,
-		device:   d,
-		sequence: s,
-	}, nil
+	return &m, nil
+}
+
+func (m *model) loadSequence() error {
+	s, err := sequence.New("_test/test.md")
+	if err != nil {
+		return err
+	}
+	m.sequence = s
+	return nil
 }
 
 type deviceTick <-chan time.Time
@@ -83,6 +93,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "ctrl+c", "q":
 			return m, tea.Quit
+
+		case "R":
+			if m.device.Playing() {
+				m.cancel()
+			}
+			err := m.loadSequence()
+			if err != nil {
+				m.errs = append(m.errs, err)
+			}
 
 		case "h", "left":
 			if m.selected > 0 {
