@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/trotttrotttrott/seq/music"
 
@@ -75,7 +76,8 @@ func (p *Part) CurrentStep() *int {
 	return p.currentStep
 }
 
-func (p *Part) UpdateStep(i int) {
+func (p *Part) UpdateStep(i int, delay time.Duration) {
+	time.Sleep(delay)
 	p.currentStep = &i
 }
 

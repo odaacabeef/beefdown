@@ -81,11 +81,12 @@ func (d *Device) Play(ctx context.Context, bpm float64, playable any) {
 		return
 	}
 
-	d.ticker = time.NewTicker(time.Duration(float64(time.Minute) / bpm))
+	beat := time.Duration(float64(time.Minute) / bpm)
+	d.ticker = time.NewTicker(beat)
 
 	switch playable.(type) {
 	case *sequence.Arrangement:
-		go d.playArrangement(ctx, playable.(*sequence.Arrangement))
+		go d.playArrangement(ctx, playable.(*sequence.Arrangement), beat)
 	case *sequence.Part:
 		p := playable.(*sequence.Part)
 		a := sequence.Arrangement{
@@ -95,22 +96,21 @@ func (d *Device) Play(ctx context.Context, bpm float64, playable any) {
 				},
 			},
 		}
-		go d.playArrangement(ctx, &a)
+		go d.playArrangement(ctx, &a, beat)
 	default:
 		d.stop()
 		return
 	}
 }
 
-func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
+func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, beat time.Duration) {
 
 	defer d.ticker.Stop()
 	defer d.stop()
 	defer d.silence()
-	defer a.ClearStep()
 
 	for aidx, stepParts := range a.Parts {
-		a.UpdateStep(aidx)
+		go a.UpdateStep(aidx, beat*2)
 		select {
 		case <-ctx.Done():
 			return
@@ -128,7 +128,7 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 						case <-ctx.Done():
 							return
 						case <-t:
-							p.UpdateStep(sidx)
+							go p.UpdateStep(sidx, beat)
 							for _, m := range sm {
 								err := d.Send(m)
 								if err != nil {
