@@ -92,6 +92,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 
 		case "ctrl+c", "q":
+			if m.device.Playing() {
+				m.cancel()
+			}
 			return m, tea.Quit
 
 		case "R":
