@@ -28,3 +28,16 @@ func (m metadata) channel() (uint8, error) {
 	}
 	return 1, nil
 }
+
+func (m metadata) bpm() (float64, error) {
+	re := regexp.MustCompile(`bpm:([0-9]+\.?[0-9]+?)`)
+	match := re.FindStringSubmatch(string(m))
+	if len(match) > 0 {
+		num, err := strconv.ParseFloat(match[1], 64)
+		if err != nil {
+			return 120, err
+		}
+		return num, nil
+	}
+	return 120, nil
+}

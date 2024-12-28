@@ -10,6 +10,12 @@ func (s style) state() lipgloss.Style {
 		Margin(1)
 }
 
+func (s style) metadata() lipgloss.Style {
+	return lipgloss.NewStyle().
+		Padding(0, 1).
+		Margin(1)
+}
+
 func (s style) errors() lipgloss.Style {
 	return lipgloss.NewStyle().
 		Padding(0, 1).

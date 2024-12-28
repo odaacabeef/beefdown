@@ -12,12 +12,11 @@ import (
 )
 
 type Part struct {
-	Name    string
-	Channel uint8
-
 	metadata metadata
-	StepData []string
+	Name     string
+	Channel  uint8
 
+	StepData []string
 	StepMIDI [][]midi.Message
 
 	currentStep *int

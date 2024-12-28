@@ -13,7 +13,6 @@ import (
 )
 
 type model struct {
-	bpm      float64
 	device   *device.Device
 	sequence *sequence.Sequence
 
@@ -45,7 +44,6 @@ func initialModel() (*model, error) {
 	}
 
 	m := model{
-		bpm:    120,
 		device: d,
 	}
 
@@ -133,7 +131,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				p := m.sequence.Playable[m.selected]
 				m.playing = &m.selected
 				m.ctx, m.cancel = context.WithCancel(context.Background())
-				m.device.Play(m.ctx, m.bpm, p)
+				m.device.Play(m.ctx, m.sequence.BPM, p)
 				return m, listenForDeviceTick(m.device.TickerC())
 			case m.device.Playing():
 				m.cancel()
@@ -149,6 +147,8 @@ func (m model) View() string {
 	st := style(lipgloss.NewStyle())
 
 	s := ""
+
+	s += st.metadata().Render(fmt.Sprintf("%s; bpm: %f", m.sequence.Path, m.sequence.BPM))
 
 	s += st.state().Render(fmt.Sprintf("state: %s", m.device.State()))
 

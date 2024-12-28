@@ -10,6 +10,9 @@ import (
 type Sequence struct {
 	Path string
 
+	metadata metadata
+	BPM      float64
+
 	Parts        []*Part
 	Arrangements []*Arrangement
 
@@ -51,6 +54,14 @@ func (s *Sequence) parse() error {
 		m := lines[0]
 
 		switch {
+		case strings.HasPrefix(m, ".metadata"):
+			s.metadata = metadata(b[1])
+			bpm, err := s.metadata.bpm()
+			if err != nil {
+				return err
+			}
+			s.BPM = bpm
+
 		case strings.HasPrefix(m, ".part"):
 
 			p := Part{

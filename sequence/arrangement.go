@@ -7,12 +7,11 @@ import (
 )
 
 type Arrangement struct {
-	Name string
-
 	metadata metadata
-	StepData []string
+	Name     string
 
-	Parts [][]*Part
+	StepData []string
+	Parts    [][]*Part
 
 	currentStep *int
 }
