@@ -17,25 +17,25 @@ func Note(name string, octave string) (*uint8, error) {
 	switch strings.ToUpper(name) {
 	case "C":
 		note = midi.C(oct)
-	case "C#", "Db":
+	case "C#", "DB":
 		note = midi.Db(oct)
 	case "D":
 		note = midi.D(oct)
-	case "D#", "Eb":
-		note = midi.E(oct)
+	case "D#", "EB":
+		note = midi.Eb(oct)
 	case "E":
 		note = midi.E(oct)
 	case "F":
 		note = midi.F(oct)
-	case "F#", "Gb":
-		note = midi.G(oct)
+	case "F#", "GB":
+		note = midi.Gb(oct)
 	case "G":
 		note = midi.G(oct)
-	case "G#", "Ab":
+	case "G#", "AB":
 		note = midi.Ab(oct)
 	case "A":
 		note = midi.A(oct)
-	case "A#", "Bb":
+	case "A#", "BB":
 		note = midi.Bb(oct)
 	case "B":
 		note = midi.B(oct)
