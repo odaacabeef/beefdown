@@ -54,6 +54,7 @@ func (d *Device) Stopped() bool {
 }
 
 func (d *Device) stop() {
+	time.Sleep(d.beat)
 	d.state = "stopped"
 }
 
