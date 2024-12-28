@@ -15,6 +15,7 @@ import (
 type Device struct {
 	Send   func(midi.Message) error
 	ticker *time.Ticker
+	beat   time.Duration
 	state  string
 	Errors chan (error)
 }
@@ -81,12 +82,12 @@ func (d *Device) Play(ctx context.Context, bpm float64, playable any) {
 		return
 	}
 
-	beat := time.Duration(float64(time.Minute) / bpm)
-	d.ticker = time.NewTicker(beat)
+	d.beat = time.Duration(float64(time.Minute) / bpm)
+	d.ticker = time.NewTicker(d.beat)
 
 	switch playable.(type) {
 	case *sequence.Arrangement:
-		go d.playArrangement(ctx, playable.(*sequence.Arrangement), beat)
+		go d.playArrangement(ctx, playable.(*sequence.Arrangement))
 	case *sequence.Part:
 		p := playable.(*sequence.Part)
 		a := sequence.Arrangement{
@@ -96,21 +97,21 @@ func (d *Device) Play(ctx context.Context, bpm float64, playable any) {
 				},
 			},
 		}
-		go d.playArrangement(ctx, &a, beat)
+		go d.playArrangement(ctx, &a)
 	default:
 		d.stop()
 		return
 	}
 }
 
-func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, beat time.Duration) {
+func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 
 	defer d.ticker.Stop()
 	defer d.stop()
 	defer d.silence()
 
 	for aidx, stepParts := range a.Parts {
-		go a.UpdateStep(aidx, beat*2)
+		go a.UpdateStep(aidx, d.beat*2)
 		select {
 		case <-ctx.Done():
 			return
@@ -128,7 +129,7 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, b
 						case <-ctx.Done():
 							return
 						case <-t:
-							go p.UpdateStep(sidx, beat)
+							go p.UpdateStep(sidx, d.beat)
 							for _, m := range sm {
 								err := d.Send(m)
 								if err != nil {
