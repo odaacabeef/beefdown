@@ -7,7 +7,7 @@ import (
 
 type metadata string
 
-func (m metadata) Name() string {
+func (m metadata) name() string {
 	re := regexp.MustCompile(`name:([0-9A-Za-z_-]+)`)
 	match := re.FindStringSubmatch(string(m))
 	if len(match) > 0 {
@@ -16,7 +16,7 @@ func (m metadata) Name() string {
 	return ""
 }
 
-func (m metadata) Channel() (uint8, error) {
+func (m metadata) channel() (uint8, error) {
 	re := regexp.MustCompile(`ch:([0-9]+)`)
 	match := re.FindStringSubmatch(string(m))
 	if len(match) > 0 {

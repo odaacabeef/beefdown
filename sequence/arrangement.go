@@ -18,7 +18,7 @@ type Arrangement struct {
 }
 
 func (a *Arrangement) parseMetadata() {
-	a.Name = a.metadata.Name()
+	a.Name = a.metadata.name()
 }
 
 func (a *Arrangement) parseParts(s Sequence) {

@@ -24,8 +24,8 @@ type Part struct {
 }
 
 func (p *Part) parseMetadata() error {
-	p.Name = p.metadata.Name()
-	ch, err := p.metadata.Channel()
+	p.Name = p.metadata.name()
+	ch, err := p.metadata.channel()
 	if err != nil {
 		return err
 	}
