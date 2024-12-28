@@ -75,17 +75,19 @@ func listenForDeviceTick(c <-chan time.Time) tea.Cmd {
 }
 
 func (m model) Init() tea.Cmd {
-	return listenForDeviceTick(nil)
+	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case deviceTick:
-		if m.device.Stopped() {
+		switch {
+		case m.device.Stopped():
 			m.playing = nil
+		case m.device.Playing():
+			return m, listenForDeviceTick(m.device.TickerC())
 		}
-		return m, listenForDeviceTick(m.device.TickerC())
 
 	case tea.KeyMsg:
 
@@ -129,6 +131,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.playing = &m.selected
 				m.ctx, m.cancel = context.WithCancel(context.Background())
 				m.device.Play(m.ctx, m.bpm, p)
+				return m, listenForDeviceTick(m.device.TickerC())
 			case m.device.Playing():
 				m.cancel()
 			}
