@@ -54,7 +54,6 @@ func (d *Device) Stopped() bool {
 }
 
 func (d *Device) stop() {
-	time.Sleep(d.beat)
 	d.state = "stopped"
 }
 
@@ -111,6 +110,9 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 	defer d.stop()
 	defer d.silence()
 
+	// delay a beat to avoid interrupting the last beat
+	delay := d.beat
+
 	for aidx, stepParts := range a.Parts {
 		go a.UpdateStep(aidx, d.beat*2)
 		select {
@@ -131,7 +133,14 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 							return
 						case <-t:
 							go p.UpdateStep(sidx, d.beat)
-							for _, m := range sm {
+							for _, m := range sm.Off {
+								err := d.Send(m)
+								if err != nil {
+									d.Errors <- err
+									return
+								}
+							}
+							for _, m := range sm.On {
 								err := d.Send(m)
 								if err != nil {
 									d.Errors <- err
@@ -146,6 +155,7 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 				for {
 					select {
 					case <-ctx.Done():
+						delay = 0 // interrupted, don't delay
 						break
 					case <-stepDone:
 						return
@@ -163,4 +173,5 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 			}
 		}
 	}
+	time.Sleep(delay)
 }
