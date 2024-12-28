@@ -127,6 +127,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case " ":
 			switch {
 			case m.device.Stopped():
+				for _, p := range m.sequence.Playable {
+					p.ClearStep()
+				}
 				p := m.sequence.Playable[m.selected]
 				m.playing = &m.selected
 				m.ctx, m.cancel = context.WithCancel(context.Background())
