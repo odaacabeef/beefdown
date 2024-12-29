@@ -17,6 +17,9 @@ type model struct {
 	device   *device.Device
 	sequence *sequence.Sequence
 
+	groupNames []string
+	groups     map[string][]sequence.Playable
+
 	selected coordinates
 	playing  *coordinates
 
@@ -66,6 +69,18 @@ func (m *model) loadSequence() error {
 		return err
 	}
 	m.sequence = s
+	m.groups = map[string][]sequence.Playable{}
+	m.groupNames = []string{}
+groupPlayables:
+	for _, p := range m.sequence.Playable {
+		m.groups[p.Group()] = append(m.groups[p.Group()], p)
+		for _, name := range m.groupNames {
+			if name == p.Group() {
+				continue groupPlayables
+			}
+		}
+		m.groupNames = append(m.groupNames, p.Group())
+	}
 	return nil
 }
 
@@ -117,15 +132,41 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "l", "right":
-			if m.selected.x < len(m.sequence.Playable)-1 {
+			if m.selected.x < len(m.groups[m.groupNames[m.selected.y]])-1 {
 				m.selected.x++
+			}
+
+		case "k", "up":
+			if m.selected.y > 0 {
+				m.selected.y--
+				maxIdx := len(m.groups[m.groupNames[m.selected.y]]) - 1
+				if m.selected.x > maxIdx {
+					m.selected.x = maxIdx
+				}
+			}
+
+		case "j", "down":
+			if m.selected.y < len(m.groupNames)-1 {
+				m.selected.y++
+				maxIdx := len(m.groups[m.groupNames[m.selected.y]]) - 1
+				if m.selected.x > maxIdx {
+					m.selected.x = maxIdx
+				}
 			}
 
 		case "0":
 			m.selected.x = 0
 
 		case "$":
-			m.selected.x = len(m.sequence.Playable) - 1
+			m.selected.x = len(m.groups[m.groupNames[m.selected.y]]) - 1
+
+		case "g":
+			m.selected.x = 0
+			m.selected.y = 0
+
+		case "G":
+			m.selected.x = 0
+			m.selected.y = len(m.groupNames) - 1
 
 		case " ":
 			switch {
@@ -133,7 +174,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				for _, p := range m.sequence.Playable {
 					p.ClearStep()
 				}
-				p := m.sequence.Playable[m.selected.x]
+				selected := 0
+				for i, g := range m.groupNames {
+					switch {
+					case i < m.selected.y:
+						selected += len(m.groups[g])
+					case i == m.selected.y:
+						selected += m.selected.x
+					default:
+						continue
+					}
+				}
+				p := m.sequence.Playable[selected]
 				m.playing = &m.selected
 				m.ctx, m.cancel = context.WithCancel(context.Background())
 				m.device.Play(m.ctx, m.sequence.BPM, p)
@@ -161,27 +213,20 @@ func (m model) View() string {
 		s += st.errors().Render(fmt.Sprintf("%v", m.errs))
 	}
 
-	var groupkeys []string
-	groups := map[string][]string{}
-
-groupPlayables:
-	for i, p := range m.sequence.Playable {
-		groups[p.Group()] = append(groups[p.Group()], st.playable(i == m.selected.x, (m.playing != nil && i == m.playing.x)).Render(p.String()))
-		for _, k := range groupkeys {
-			if k == p.Group() {
-				continue groupPlayables
-			}
-		}
-		groupkeys = append(groupkeys, p.Group())
-	}
-
-	for _, g := range groupkeys {
+	for gIdx, g := range m.groupNames {
 		var sb strings.Builder
 		for _, char := range g {
 			sb.WriteRune(char)
 			sb.WriteString("\n")
 		}
-		s += lipgloss.JoinHorizontal(lipgloss.Top, append([]string{st.groupName().Render(sb.String())}, groups[g]...)...)
+		var playables []string
+		for pIdx, p := range m.groups[g] {
+			playables = append(playables, st.playable(
+				pIdx == m.selected.x && gIdx == m.selected.y,
+				m.playing != nil && pIdx == m.playing.x && gIdx == m.playing.y,
+			).Render(p.String()))
+		}
+		s += lipgloss.JoinHorizontal(lipgloss.Top, append([]string{st.groupName().Render(sb.String())}, playables...)...)
 	}
 
 	return s
