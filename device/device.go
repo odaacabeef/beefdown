@@ -73,7 +73,7 @@ func (d *Device) TickerC() <-chan time.Time {
 	return nil
 }
 
-func (d *Device) Play(ctx context.Context, bpm float64, playable any) {
+func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool) {
 
 	switch {
 	case d.Stopped():
@@ -87,7 +87,7 @@ func (d *Device) Play(ctx context.Context, bpm float64, playable any) {
 
 	switch playable.(type) {
 	case *sequence.Arrangement:
-		go d.playArrangement(ctx, playable.(*sequence.Arrangement))
+		go d.playArrangement(ctx, playable.(*sequence.Arrangement), loop)
 	case *sequence.Part:
 		p := playable.(*sequence.Part)
 		a := sequence.Arrangement{
@@ -97,14 +97,14 @@ func (d *Device) Play(ctx context.Context, bpm float64, playable any) {
 				},
 			},
 		}
-		go d.playArrangement(ctx, &a)
+		go d.playArrangement(ctx, &a, loop)
 	default:
 		d.stop()
 		return
 	}
 }
 
-func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
+func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, loop bool) {
 
 	defer d.ticker.Stop()
 	defer d.stop()
@@ -114,64 +114,69 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 	delay := d.beat
 	defer func() { time.Sleep(delay) }()
 
-	for aidx, stepParts := range a.Parts {
-		a.UpdateStep(aidx)
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			var wg sync.WaitGroup
-			var tick []chan bool
-			stepDone := make(chan bool)
-			for pidx, p := range stepParts {
-				wg.Add(1)
-				tick = append(tick, make(chan bool))
-				go func(t chan bool) {
-					defer wg.Done()
-					for sidx, sm := range p.StepMIDI {
+	for {
+		for aidx, stepParts := range a.Parts {
+			a.UpdateStep(aidx)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				var wg sync.WaitGroup
+				var tick []chan bool
+				stepDone := make(chan bool)
+				for pidx, p := range stepParts {
+					wg.Add(1)
+					tick = append(tick, make(chan bool))
+					go func(t chan bool) {
+						defer wg.Done()
+						for sidx, sm := range p.StepMIDI {
+							select {
+							case <-ctx.Done():
+								return
+							case <-t:
+								p.UpdateStep(sidx)
+								for _, m := range sm.Off {
+									err := d.Send(m)
+									if err != nil {
+										d.Errors <- err
+										return
+									}
+								}
+								for _, m := range sm.On {
+									err := d.Send(m)
+									if err != nil {
+										d.Errors <- err
+										return
+									}
+								}
+							}
+						}
+					}(tick[pidx])
+				}
+				go func() {
+					for {
 						select {
 						case <-ctx.Done():
+							delay = 0 // interrupted, don't delay
+							break
+						case <-stepDone:
 							return
-						case <-t:
-							p.UpdateStep(sidx)
-							for _, m := range sm.Off {
-								err := d.Send(m)
-								if err != nil {
-									d.Errors <- err
-									return
-								}
-							}
-							for _, m := range sm.On {
-								err := d.Send(m)
-								if err != nil {
-									d.Errors <- err
-									return
-								}
+						case <-d.ticker.C:
+							for _, t := range tick {
+								t <- true
 							}
 						}
 					}
-				}(tick[pidx])
-			}
-			go func() {
-				for {
-					select {
-					case <-ctx.Done():
-						delay = 0 // interrupted, don't delay
-						break
-					case <-stepDone:
-						return
-					case <-d.ticker.C:
-						for _, t := range tick {
-							t <- true
-						}
-					}
+				}()
+				wg.Wait()
+				stepDone <- true
+				if len(d.Errors) > 0 {
+					return
 				}
-			}()
-			wg.Wait()
-			stepDone <- true
-			if len(d.Errors) > 0 {
-				return
 			}
+		}
+		if !loop {
+			break
 		}
 	}
 }

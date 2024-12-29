@@ -50,3 +50,17 @@ func (m metadata) bpm() (float64, error) {
 	}
 	return 120, nil
 }
+
+func (m metadata) loop() bool {
+	re := regexp.MustCompile(`loop:(true|false)`)
+	match := re.FindStringSubmatch(string(m))
+	if len(match) > 0 {
+		switch match[1] {
+		case "true":
+			return true
+		case "false":
+			return false
+		}
+	}
+	return false
+}
