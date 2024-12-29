@@ -4,7 +4,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"time"
 )
 
 type Sequence struct {
@@ -22,7 +21,7 @@ type Sequence struct {
 type Playable interface {
 	String() string
 	CurrentStep() *int
-	UpdateStep(int, time.Duration)
+	UpdateStep(int)
 	ClearStep()
 }
 

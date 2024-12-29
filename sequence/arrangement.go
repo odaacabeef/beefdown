@@ -3,7 +3,6 @@ package sequence
 import (
 	"fmt"
 	"strings"
-	"time"
 )
 
 type Arrangement struct {
@@ -53,8 +52,7 @@ func (a *Arrangement) CurrentStep() *int {
 	return a.currentStep
 }
 
-func (a *Arrangement) UpdateStep(i int, delay time.Duration) {
-	time.Sleep(delay)
+func (a *Arrangement) UpdateStep(i int) {
 	a.currentStep = &i
 }
 
