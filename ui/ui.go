@@ -19,6 +19,7 @@ type model struct {
 
 	groupNames []string
 	groups     map[string][]sequence.Playable
+	groupX     map[string]int
 
 	selected coordinates
 	playing  *coordinates
@@ -71,6 +72,7 @@ func (m *model) loadSequence() error {
 	m.sequence = s
 	m.groups = map[string][]sequence.Playable{}
 	m.groupNames = []string{}
+	m.groupX = map[string]int{}
 groupPlayables:
 	for _, p := range m.sequence.Playable {
 		m.groups[p.Group()] = append(m.groups[p.Group()], p)
@@ -80,6 +82,7 @@ groupPlayables:
 			}
 		}
 		m.groupNames = append(m.groupNames, p.Group())
+		m.groupX[p.Group()] = 0
 	}
 	return nil
 }
@@ -129,44 +132,42 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "h", "left":
 			if m.selected.x > 0 {
 				m.selected.x--
+				m.groupX[m.groupNames[m.selected.y]] = m.selected.x
 			}
 
 		case "l", "right":
 			if m.selected.x < len(m.groups[m.groupNames[m.selected.y]])-1 {
 				m.selected.x++
+				m.groupX[m.groupNames[m.selected.y]] = m.selected.x
 			}
 
 		case "k", "up":
 			if m.selected.y > 0 {
 				m.selected.y--
-				maxIdx := len(m.groups[m.groupNames[m.selected.y]]) - 1
-				if m.selected.x > maxIdx {
-					m.selected.x = maxIdx
-				}
+				m.selected.x = m.groupX[m.groupNames[m.selected.y]]
 			}
 
 		case "j", "down":
 			if m.selected.y < len(m.groupNames)-1 {
 				m.selected.y++
-				maxIdx := len(m.groups[m.groupNames[m.selected.y]]) - 1
-				if m.selected.x > maxIdx {
-					m.selected.x = maxIdx
-				}
+				m.selected.x = m.groupX[m.groupNames[m.selected.y]]
 			}
 
 		case "0":
 			m.selected.x = 0
+			m.groupX[m.groupNames[m.selected.y]] = m.selected.x
 
 		case "$":
 			m.selected.x = len(m.groups[m.groupNames[m.selected.y]]) - 1
+			m.groupX[m.groupNames[m.selected.y]] = m.selected.x
 
 		case "g":
-			m.selected.x = 0
 			m.selected.y = 0
+			m.selected.x = m.groupX[m.groupNames[m.selected.y]]
 
 		case "G":
-			m.selected.x = 0
 			m.selected.y = len(m.groupNames) - 1
+			m.selected.x = m.groupX[m.groupNames[m.selected.y]]
 
 		case " ":
 			switch {
