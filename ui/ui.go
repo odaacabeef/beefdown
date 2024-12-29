@@ -34,9 +34,9 @@ type coordinates struct {
 	x, y int
 }
 
-func Start() error {
+func Start(sequencePath string) error {
 
-	m, err := initialModel()
+	m, err := initialModel(sequencePath)
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func Start() error {
 	return err
 }
 
-func initialModel() (*model, error) {
+func initialModel(sequencePath string) (*model, error) {
 	d, err := device.New()
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func initialModel() (*model, error) {
 		device: d,
 	}
 
-	err = m.loadSequence()
+	err = m.loadSequence(sequencePath)
 	if err != nil {
 		return nil, err
 	}
@@ -64,8 +64,8 @@ func initialModel() (*model, error) {
 	return &m, nil
 }
 
-func (m *model) loadSequence() error {
-	s, err := sequence.New("_test/test.md")
+func (m *model) loadSequence(sequencePath string) error {
+	s, err := sequence.New(sequencePath)
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.device.Playing() {
 				m.cancel()
 			}
-			err := m.loadSequence()
+			err := m.loadSequence(m.sequence.Path)
 			if err != nil {
 				m.errs = append(m.errs, err)
 			}
