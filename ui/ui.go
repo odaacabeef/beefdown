@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/trotttrotttrott/seq/device"
@@ -160,12 +161,28 @@ func (m model) View() string {
 		s += st.errors().Render(fmt.Sprintf("%v", m.errs))
 	}
 
-	var playable []string
+	var groupkeys []string
+	groups := map[string][]string{}
+
+groupPlayables:
 	for i, p := range m.sequence.Playable {
-		playable = append(playable, st.playable(i == m.selected.x, (m.playing != nil && i == m.playing.x)).Render(p.String()))
+		groups[p.Group()] = append(groups[p.Group()], st.playable(i == m.selected.x, (m.playing != nil && i == m.playing.x)).Render(p.String()))
+		for _, k := range groupkeys {
+			if k == p.Group() {
+				continue groupPlayables
+			}
+		}
+		groupkeys = append(groupkeys, p.Group())
 	}
 
-	s += lipgloss.JoinHorizontal(lipgloss.Top, playable...)
+	for _, g := range groupkeys {
+		var sb strings.Builder
+		for _, char := range g {
+			sb.WriteRune(char)
+			sb.WriteString("\n")
+		}
+		s += lipgloss.JoinHorizontal(lipgloss.Top, append([]string{st.groupName().Render(sb.String())}, groups[g]...)...)
+	}
 
 	return s
 }

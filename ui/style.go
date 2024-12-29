@@ -35,3 +35,9 @@ func (s style) playable(selected, playing bool) lipgloss.Style {
 	}
 	return base.Border(lipgloss.HiddenBorder())
 }
+
+func (s style) groupName() lipgloss.Style {
+	return lipgloss.NewStyle().
+		Padding(1).
+		Margin(1)
+}
