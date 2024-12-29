@@ -13,9 +13,9 @@ import (
 
 type Part struct {
 	metadata metadata
-	Name     string
-	Group    string
-	Channel  uint8
+	name     string
+	group    string
+	channel  uint8
 
 	StepData []string
 	StepMIDI []partStep
@@ -29,13 +29,13 @@ type partStep struct {
 }
 
 func (p *Part) parseMetadata() error {
-	p.Name = p.metadata.name()
-	p.Group = p.metadata.group()
+	p.name = p.metadata.name()
+	p.group = p.metadata.group()
 	ch, err := p.metadata.channel()
 	if err != nil {
 		return err
 	}
-	p.Channel = ch
+	p.channel = ch
 	return nil
 }
 
@@ -61,10 +61,10 @@ func (p *Part) parseMIDI() error {
 				}
 			}
 
-			p.StepMIDI[i].On = append(p.StepMIDI[i].On, midi.NoteOn(p.Channel-1, *note, 100))
+			p.StepMIDI[i].On = append(p.StepMIDI[i].On, midi.NoteOn(p.channel-1, *note, 100))
 			if beats > 0 {
 				offIdx := (i + int(beats)) % len(p.StepMIDI)
-				p.StepMIDI[offIdx].Off = append(p.StepMIDI[offIdx].Off, midi.NoteOff(p.Channel-1, *note))
+				p.StepMIDI[offIdx].Off = append(p.StepMIDI[offIdx].Off, midi.NoteOff(p.channel-1, *note))
 			}
 		}
 	}
@@ -72,7 +72,7 @@ func (p *Part) parseMIDI() error {
 }
 
 func (p *Part) String() (s string) {
-	s += fmt.Sprintf("%s (ch:%d)\n\n", p.Name, p.Channel)
+	s += fmt.Sprintf("%s (ch:%d)\n\n", p.name, p.channel)
 	var steps []string
 	for i, step := range p.StepData {
 		current := " "

@@ -7,8 +7,8 @@ import (
 
 type Arrangement struct {
 	metadata metadata
-	Name     string
-	Group    string
+	name     string
+	group    string
 
 	StepData []string
 	Parts    [][]*Part
@@ -17,8 +17,8 @@ type Arrangement struct {
 }
 
 func (a *Arrangement) parseMetadata() {
-	a.Name = a.metadata.name()
-	a.Group = a.metadata.group()
+	a.name = a.metadata.name()
+	a.group = a.metadata.group()
 }
 
 func (a *Arrangement) parseParts(s Sequence) {
@@ -26,7 +26,7 @@ func (a *Arrangement) parseParts(s Sequence) {
 		a.Parts = append(a.Parts, []*Part{})
 		for _, name := range strings.Fields(sd) {
 			for _, p := range s.Parts {
-				if p.Name == name {
+				if p.name == name {
 					a.Parts[i] = append(a.Parts[i], p)
 				}
 			}
@@ -35,7 +35,7 @@ func (a *Arrangement) parseParts(s Sequence) {
 }
 
 func (a *Arrangement) String() (s string) {
-	s += fmt.Sprintf("%s\n\n", a.Name)
+	s += fmt.Sprintf("%s\n\n", a.name)
 	var steps []string
 	for i, step := range a.StepData {
 		current := " "
