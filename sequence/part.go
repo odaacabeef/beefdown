@@ -15,6 +15,7 @@ import (
 type Part struct {
 	metadata metadata
 	Name     string
+	Group    string
 	Channel  uint8
 
 	StepData []string
@@ -30,6 +31,7 @@ type partStep struct {
 
 func (p *Part) parseMetadata() error {
 	p.Name = p.metadata.name()
+	p.Group = p.metadata.group()
 	ch, err := p.metadata.channel()
 	if err != nil {
 		return err

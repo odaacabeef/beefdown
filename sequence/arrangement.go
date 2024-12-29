@@ -9,6 +9,7 @@ import (
 type Arrangement struct {
 	metadata metadata
 	Name     string
+	Group    string
 
 	StepData []string
 	Parts    [][]*Part
@@ -18,6 +19,7 @@ type Arrangement struct {
 
 func (a *Arrangement) parseMetadata() {
 	a.Name = a.metadata.name()
+	a.Group = a.metadata.group()
 }
 
 func (a *Arrangement) parseParts(s Sequence) {

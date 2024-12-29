@@ -16,13 +16,17 @@ type model struct {
 	device   *device.Device
 	sequence *sequence.Sequence
 
-	selected int
-	playing  *int
+	selected coordinates
+	playing  *coordinates
 
 	ctx    context.Context
 	cancel context.CancelFunc
 
 	errs []error
+}
+
+type coordinates struct {
+	x, y int
 }
 
 func Start() error {
@@ -107,20 +111,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "h", "left":
-			if m.selected > 0 {
-				m.selected--
+			if m.selected.x > 0 {
+				m.selected.x--
 			}
 
 		case "l", "right":
-			if m.selected < len(m.sequence.Playable)-1 {
-				m.selected++
+			if m.selected.x < len(m.sequence.Playable)-1 {
+				m.selected.x++
 			}
 
 		case "0":
-			m.selected = 0
+			m.selected.x = 0
 
 		case "$":
-			m.selected = len(m.sequence.Playable) - 1
+			m.selected.x = len(m.sequence.Playable) - 1
 
 		case " ":
 			switch {
@@ -128,7 +132,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				for _, p := range m.sequence.Playable {
 					p.ClearStep()
 				}
-				p := m.sequence.Playable[m.selected]
+				p := m.sequence.Playable[m.selected.x]
 				m.playing = &m.selected
 				m.ctx, m.cancel = context.WithCancel(context.Background())
 				m.device.Play(m.ctx, m.sequence.BPM, p)
@@ -158,7 +162,7 @@ func (m model) View() string {
 
 	var playable []string
 	for i, p := range m.sequence.Playable {
-		playable = append(playable, st.playable(i == m.selected, (m.playing != nil && i == *m.playing)).Render(p.String()))
+		playable = append(playable, st.playable(i == m.selected.x, (m.playing != nil && i == m.playing.x)).Render(p.String()))
 	}
 
 	s += lipgloss.JoinHorizontal(lipgloss.Top, playable...)

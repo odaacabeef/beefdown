@@ -16,6 +16,15 @@ func (m metadata) name() string {
 	return ""
 }
 
+func (m metadata) group() string {
+	re := regexp.MustCompile(`group:([0-9A-Za-z_-]+)`)
+	match := re.FindStringSubmatch(string(m))
+	if len(match) > 0 {
+		return match[1]
+	}
+	return "default"
+}
+
 func (m metadata) channel() (uint8, error) {
 	re := regexp.MustCompile(`ch:([0-9]+)`)
 	match := re.FindStringSubmatch(string(m))
