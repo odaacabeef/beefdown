@@ -34,6 +34,10 @@ func (a *Arrangement) parseParts(s Sequence) {
 	}
 }
 
+func (a *Arrangement) Group() (s string) {
+	return a.group
+}
+
 func (a *Arrangement) String() (s string) {
 	s += fmt.Sprintf("%s\n\n", a.name)
 	var steps []string

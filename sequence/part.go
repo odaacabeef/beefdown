@@ -71,6 +71,10 @@ func (p *Part) parseMIDI() error {
 	return nil
 }
 
+func (p *Part) Group() (s string) {
+	return p.group
+}
+
 func (p *Part) String() (s string) {
 	s += fmt.Sprintf("%s (ch:%d)\n\n", p.name, p.channel)
 	var steps []string

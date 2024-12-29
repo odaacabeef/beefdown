@@ -19,6 +19,7 @@ type Sequence struct {
 }
 
 type Playable interface {
+	Group() string
 	String() string
 	CurrentStep() *int
 	UpdateStep(int)
