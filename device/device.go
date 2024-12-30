@@ -13,7 +13,7 @@ import (
 )
 
 type Device struct {
-	Send   func(midi.Message) error
+	send   func(midi.Message) error
 	ticker *time.Ticker
 	beat   time.Duration
 	state  string
@@ -32,7 +32,7 @@ func New() (*Device, error) {
 	}
 
 	return &Device{
-		Send:  send,
+		send:  send,
 		state: "stopped",
 	}, nil
 }
@@ -59,7 +59,7 @@ func (d *Device) stop() {
 
 func (d *Device) silence() {
 	for _, m := range midi.SilenceChannel(-1) {
-		err := d.Send(m)
+		err := d.send(m)
 		if err != nil {
 			d.Errors <- err
 		}
@@ -136,14 +136,14 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, l
 							case <-t:
 								p.UpdateStep(sidx)
 								for _, m := range sm.Off {
-									err := d.Send(m)
+									err := d.send(m)
 									if err != nil {
 										d.Errors <- err
 										return
 									}
 								}
 								for _, m := range sm.On {
-									err := d.Send(m)
+									err := d.send(m)
 									if err != nil {
 										d.Errors <- err
 										return
