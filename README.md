@@ -10,9 +10,10 @@ This file is a sequence. Run it with:
 go run . README.md
 ```
 
-Code blocks with `seq.` prefixed language identifiers are used to specify
-musical information. View this file as code to see all configuration:
-[README.md?plain=1](README.md?plain=1).
+Code blocks with `seq` prefixed language identifiers are used to specify musical
+information.
+
+Before reading on, switch to code view: [README.md?plain=1](README.md?plain=1).
 
 ### Metadata
 
@@ -42,7 +43,7 @@ d3:8
 
 ```
 
-Each line represents a beat. Characters represent notes.
+Each line represents a beat.
 
 `c4:1` would play c4 for 1 beat.
 
