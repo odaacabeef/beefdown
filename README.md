@@ -32,7 +32,7 @@ Parts are collections of notes.
 
 `seq.part name:<name> group:<group> ch:<channel>`
 
-```seq.part name:a ch:1
+```seq.part name:a
 c4:8
 
 a2:6
@@ -58,7 +58,7 @@ c4:1
 Horizontal space is irrelevant. Do whatever makes the most sense to you
 visually.
 
-```seq.part name:a- ch:1
+```seq.part name:a-
 c4:8      d3:8
 
      a2:6
