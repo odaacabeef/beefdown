@@ -16,7 +16,7 @@ type Device struct {
 	send   func(midi.Message) error
 	ticker *time.Ticker
 	beat   time.Duration
-	state  string
+	state  state
 	Errors chan (error)
 }
 
@@ -33,28 +33,20 @@ func New() (*Device, error) {
 
 	return &Device{
 		send:  send,
-		state: "stopped",
+		state: newState(),
 	}, nil
 }
 
 func (d *Device) State() string {
-	return d.state
+	return string(d.state)
 }
 
 func (d *Device) Playing() bool {
-	return d.state == "playing"
-}
-
-func (d *Device) play() {
-	d.state = "playing"
+	return d.state.playing()
 }
 
 func (d *Device) Stopped() bool {
-	return d.state == "stopped"
-}
-
-func (d *Device) stop() {
-	d.state = "stopped"
+	return d.state.stopped()
 }
 
 func (d *Device) silence() {
@@ -75,12 +67,11 @@ func (d *Device) TickerC() <-chan time.Time {
 
 func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool) {
 
-	switch {
-	case d.Stopped():
-		d.play()
-	case d.Playing():
+	if !d.state.stopped() {
 		return
 	}
+
+	d.state.play()
 
 	d.beat = time.Duration(float64(time.Minute) / bpm)
 	d.ticker = time.NewTicker(d.beat)
@@ -99,7 +90,7 @@ func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool)
 		}
 		go d.playArrangement(ctx, &a, loop)
 	default:
-		d.stop()
+		d.state.stop()
 		return
 	}
 }
@@ -107,7 +98,7 @@ func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool)
 func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, loop bool) {
 
 	defer d.ticker.Stop()
-	defer d.stop()
+	defer d.state.stop()
 	defer d.silence()
 
 	// delay a beat to avoid interrupting the last beat
