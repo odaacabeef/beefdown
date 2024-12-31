@@ -24,8 +24,7 @@ type model struct {
 	selected coordinates
 	playing  *coordinates
 
-	ctx    context.Context
-	cancel context.CancelFunc
+	stop context.CancelFunc
 
 	errs []error
 }
@@ -116,13 +115,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "ctrl+c", "q":
 			if m.device.Playing() {
-				m.cancel()
+				m.stop()
 			}
 			return m, tea.Quit
 
 		case "R":
 			if m.device.Playing() {
-				m.cancel()
+				m.stop()
 			}
 			err := m.loadSequence(m.sequence.Path)
 			if err != nil {
@@ -188,11 +187,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				p := m.sequence.Playable[selected]
 				m.playing = &m.selected
-				m.ctx, m.cancel = context.WithCancel(context.Background())
-				m.device.Play(m.ctx, p, m.sequence.BPM, m.sequence.Loop)
+				ctx, stop := context.WithCancel(context.Background())
+				m.stop = stop
+				m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop)
 				return m, listenForDeviceTick(m.device.TickerC())
 			case m.device.Playing():
-				m.cancel()
+				m.stop()
 			}
 		}
 	}
