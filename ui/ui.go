@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/trotttrotttrott/seq/device"
 	"github.com/trotttrotttrott/seq/sequence"
@@ -16,6 +15,8 @@ import (
 type model struct {
 	device   *device.Device
 	sequence *sequence.Sequence
+
+	clock chan int
 
 	groupNames []string
 	groups     map[string][]sequence.Playable
@@ -53,6 +54,7 @@ func initialModel(sequencePath string) (*model, error) {
 
 	m := model{
 		device: d,
+		clock:  make(chan int),
 	}
 
 	err = m.loadSequence(sequencePath)
@@ -86,11 +88,11 @@ groupPlayables:
 	return nil
 }
 
-type deviceTick <-chan time.Time
+type deviceTick int
 
-func listenForDeviceTick(c <-chan time.Time) tea.Cmd {
+func listenForDeviceTick(c chan int) tea.Cmd {
 	return func() tea.Msg {
-		return deviceTick(c)
+		return deviceTick(<-c)
 	}
 }
 
@@ -106,7 +108,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case m.device.Stopped():
 			m.playing = nil
 		case m.device.Playing():
-			return m, listenForDeviceTick(m.device.TickerC())
+			return m, listenForDeviceTick(m.clock)
 		}
 
 	case tea.KeyMsg:
@@ -189,8 +191,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.playing = &m.selected
 				ctx, stop := context.WithCancel(context.Background())
 				m.stop = stop
-				m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop)
-				return m, listenForDeviceTick(m.device.TickerC())
+				m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.clock)
+				return m, listenForDeviceTick(m.clock)
 			case m.device.Playing():
 				m.stop()
 			}

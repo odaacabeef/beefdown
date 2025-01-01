@@ -15,6 +15,8 @@ import (
 type Device struct {
 	send   func(midi.Message) error
 	ticker *time.Ticker
+	bpm    float64
+	loop   bool
 	beat   time.Duration
 	state  state
 	Errors chan (error)
@@ -58,27 +60,18 @@ func (d *Device) silence() {
 	}
 }
 
-func (d *Device) TickerC() <-chan time.Time {
-	if d.ticker != nil {
-		return d.ticker.C
-	}
-	return nil
-}
-
-func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool) {
+func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool, ch chan int) {
 
 	if !d.state.stopped() {
 		return
 	}
 
-	d.state.play()
-
-	d.beat = time.Duration(float64(time.Minute) / bpm)
-	d.ticker = time.NewTicker(d.beat)
+	d.bpm = bpm
+	d.loop = loop
 
 	switch playable.(type) {
 	case *sequence.Arrangement:
-		go d.playArrangement(ctx, playable.(*sequence.Arrangement), loop)
+		go d.playArrangement(ctx, playable.(*sequence.Arrangement), ch)
 	case *sequence.Part:
 		p := playable.(*sequence.Part)
 		a := sequence.Arrangement{
@@ -88,22 +81,29 @@ func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool)
 				},
 			},
 		}
-		go d.playArrangement(ctx, &a, loop)
-	default:
-		d.state.stop()
-		return
+		go d.playArrangement(ctx, &a, ch)
 	}
 }
 
-func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, loop bool) {
+func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, ch chan int) {
+
+	d.beat = time.Duration(float64(time.Minute) / d.bpm)
+	d.ticker = time.NewTicker(d.beat / 24.0)
 
 	defer d.ticker.Stop()
 	defer d.state.stop()
 	defer d.silence()
 
-	// delay a beat to avoid interrupting the last beat
 	delay := d.beat
-	defer func() { time.Sleep(delay) }()
+	clockIdx := 0
+	defer func() {
+		// delay a beat to avoid interrupting the last beat
+		time.Sleep(delay)
+		// final message
+		ch <- clockIdx
+	}()
+
+	d.state.play()
 
 	for {
 		for aidx, stepParts := range a.Parts {
@@ -153,9 +153,13 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, l
 						case <-stepDone:
 							return
 						case <-d.ticker.C:
-							for _, t := range tick {
-								t <- true
+							if clockIdx%24 == 0 {
+								for _, t := range tick {
+									t <- true
+								}
 							}
+							ch <- clockIdx
+							clockIdx++
 						}
 					}
 				}()
@@ -166,7 +170,7 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, l
 				}
 			}
 		}
-		if !loop {
+		if !d.loop {
 			break
 		}
 	}
