@@ -30,7 +30,7 @@ loop:true
 
 Parts are collections of notes.
 
-`seq.part name:<name> group:<group> ch:<channel>`
+`seq.part name:<name> group:<group> ch:<channel> div:<division>`
 
 ```seq.part name:a
 c4:8
@@ -85,12 +85,96 @@ c4:2
 To omit off messages, don't include a beat value. You might want this for
 samplers or percussion instruments.
 
-```seq.part name:hh group:drums ch:16
+```seq.part name:hh-1 group:drums ch:16
 gb1
 gb1
 gb1
 gb1
 gb1
+gb1
+gb1
+gb1
+```
+
+You can change the length of each beat with `div`. Recognized values are `8th`,
+`8th-triplet`, `16th`, and `32nd`.
+
+```seq.part name:hh-2 group:drums ch:16 div:8th
+gb1
+gb1
+gb1
+gb1
+    bb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+    bb1
+gb1
+gb1
+gb1
+```
+
+```seq.part name:hh-3 group:drums ch:16 div:8th-triplet
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+```
+
+```seq.part name:hh-4 group:drums ch:16 div:16th
+gb1
+gb1
+gb1
+gb1
+    bb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+    bb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+    bb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+gb1
+    bb1
 gb1
 gb1
 gb1
@@ -124,17 +208,25 @@ Arrangements are collections of parts.
 
 `seq.arrangement name:<name> group:<group>`
 
+```seq.arrangement name:tlteswt group:drums
+ks-2 hh-3
+```
+
 ```seq.arrangement name:kshh group:drums
-ks-2 hh
-ks-2 hh
-ks-2 hh
-ks-2 hh
+ks-2 hh-1
+ks-2 hh-2
+ks-2 hh-3
+ks-2 hh-4
 ```
 
 ```seq.arrangement name:all group:last
-ks-1 hh a
-ks-2 hh a-
-ks-2 hh a-
-ks-2 hh a- b
-ks-2 hh a- b
+ks-1 hh-1 a
+ks-2 hh-1 a-
+ks-2 hh-1 a-
+ks-2 hh-2 a- b
+ks-2 hh-2 a- b
+ks-2 hh-3 a- b
+ks-2 hh-3 a- b
+ks-2 hh-4 a- b
+ks-2 hh-4 a- b
 ```

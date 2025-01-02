@@ -64,3 +64,21 @@ func (m metadata) loop() bool {
 	}
 	return false
 }
+
+func (m metadata) div() int {
+	re := regexp.MustCompile(`div:(8th-triplet|8th|16th|32nd)`)
+	match := re.FindStringSubmatch(string(m))
+	if len(match) > 0 {
+		switch match[1] {
+		case "8th":
+			return 12
+		case "8th-triplet":
+			return 8
+		case "16th":
+			return 6
+		case "32nd":
+			return 3
+		}
+	}
+	return 24
+}

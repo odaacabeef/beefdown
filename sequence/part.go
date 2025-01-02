@@ -16,6 +16,7 @@ type Part struct {
 	name     string
 	group    string
 	channel  uint8
+	div      int
 
 	StepData []string
 	StepMIDI []partStep
@@ -28,6 +29,15 @@ type partStep struct {
 	Off []midi.Message
 }
 
+// EmptyPart creates a part with the maximum number of steps.
+func EmptyPart() (p *Part) {
+	p = &Part{
+		div:      1,
+		StepMIDI: make([]partStep, 24*8),
+	}
+	return
+}
+
 func (p *Part) parseMetadata() error {
 	p.name = p.metadata.name()
 	p.group = p.metadata.group()
@@ -36,6 +46,7 @@ func (p *Part) parseMetadata() error {
 		return err
 	}
 	p.channel = ch
+	p.div = p.metadata.div()
 	return nil
 }
 
@@ -71,8 +82,12 @@ func (p *Part) parseMIDI() error {
 	return nil
 }
 
-func (p *Part) Group() (s string) {
+func (p *Part) Group() string {
 	return p.group
+}
+
+func (p *Part) Div() int {
+	return p.div
 }
 
 func (p *Part) String() (s string) {
@@ -83,7 +98,7 @@ func (p *Part) String() (s string) {
 		if p.currentStep != nil && *p.currentStep == i {
 			current = ">"
 		}
-		steps = append(steps, fmt.Sprintf("%s %d  %s", current, i+1, step))
+		steps = append(steps, fmt.Sprintf("%s %*d  %s", current, len(strconv.Itoa(len(p.StepData))), i+1, step))
 	}
 	s += strings.Join(steps, "\n")
 	return
