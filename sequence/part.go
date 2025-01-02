@@ -18,7 +18,7 @@ type Part struct {
 	channel  uint8
 	div      int
 
-	StepData []string
+	stepData []string
 	StepMIDI []partStep
 
 	currentStep *int
@@ -54,9 +54,9 @@ func (p *Part) parseMIDI() error {
 
 	re := regexp.MustCompile(`([[:alpha:]][b,#]?)([[:digit:]]+):?([[:digit:]])?`)
 
-	p.StepMIDI = make([]partStep, len(p.StepData))
+	p.StepMIDI = make([]partStep, len(p.stepData))
 
-	for i, sd := range p.StepData {
+	for i, sd := range p.stepData {
 
 		for _, msgs := range re.FindAllStringSubmatch(sd, -1) {
 			note, err := music.Note(msgs[1], msgs[2])
@@ -93,12 +93,12 @@ func (p *Part) Div() int {
 func (p *Part) String() (s string) {
 	s += fmt.Sprintf("%s (ch:%d)\n\n", p.name, p.channel)
 	var steps []string
-	for i, step := range p.StepData {
+	for i, step := range p.stepData {
 		current := " "
 		if p.currentStep != nil && *p.currentStep == i {
 			current = ">"
 		}
-		steps = append(steps, fmt.Sprintf("%s %*d  %s", current, len(strconv.Itoa(len(p.StepData))), i+1, step))
+		steps = append(steps, fmt.Sprintf("%s %*d  %s", current, len(strconv.Itoa(len(p.stepData))), i+1, step))
 	}
 	s += strings.Join(steps, "\n")
 	return

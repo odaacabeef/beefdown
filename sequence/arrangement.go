@@ -10,7 +10,7 @@ type Arrangement struct {
 	name     string
 	group    string
 
-	StepData []string
+	stepData []string
 	Parts    [][]*Part
 
 	currentStep *int
@@ -22,7 +22,7 @@ func (a *Arrangement) parseMetadata() {
 }
 
 func (a *Arrangement) parseParts(s Sequence) {
-	for i, sd := range a.StepData {
+	for i, sd := range a.stepData {
 		a.Parts = append(a.Parts, []*Part{})
 		for _, name := range strings.Fields(sd) {
 			for _, p := range s.Parts {
@@ -41,7 +41,7 @@ func (a *Arrangement) Group() (s string) {
 func (a *Arrangement) String() (s string) {
 	s += fmt.Sprintf("%s\n\n", a.name)
 	var steps []string
-	for i, step := range a.StepData {
+	for i, step := range a.stepData {
 		current := " "
 		if a.currentStep != nil && *a.currentStep == i {
 			current = ">"
