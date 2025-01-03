@@ -214,10 +214,21 @@ func (m model) View() string {
 		}
 		var playables []string
 		for pIdx, p := range m.groups[g] {
+			steps := p.Steps()
+			lines := strings.Split(steps, "\n")
+			chunkSize := 16
+			if len(lines) > chunkSize {
+				var chunks []string
+				for chunkSize < len(lines) {
+					lines, chunks = lines[chunkSize:], append(chunks, strings.Join(lines[0:chunkSize:chunkSize], "\n"))
+					chunks = append(chunks, "  ")
+				}
+				steps = lipgloss.JoinHorizontal(lipgloss.Top, append(chunks, strings.Join(lines, "\n"))...)
+			}
 			playables = append(playables, st.playable(
 				pIdx == m.selected.x && gIdx == m.selected.y,
 				m.playing != nil && pIdx == m.playing.x && gIdx == m.playing.y,
-			).Render(p.String()))
+			).Render(p.Title()+steps))
 		}
 		s += lipgloss.JoinHorizontal(lipgloss.Top, append([]string{st.groupName().Render(sb.String())}, playables...)...)
 	}

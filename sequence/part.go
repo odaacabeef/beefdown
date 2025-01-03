@@ -97,8 +97,11 @@ func (p *Part) Div() int {
 	return p.div
 }
 
-func (p *Part) String() (s string) {
-	s += fmt.Sprintf("%s (ch:%d)\n\n", p.name, p.channel)
+func (p *Part) Title() (s string) {
+	return fmt.Sprintf("%s (ch:%d)\n\n", p.name, p.channel)
+}
+
+func (p *Part) Steps() (s string) {
 	var steps []string
 	for i, step := range p.stepData {
 		current := " "

@@ -38,8 +38,11 @@ func (a *Arrangement) Group() (s string) {
 	return a.group
 }
 
-func (a *Arrangement) String() (s string) {
-	s += fmt.Sprintf("%s\n\n", a.name)
+func (a *Arrangement) Title() (s string) {
+	return fmt.Sprintf("%s\n\n", a.name)
+}
+
+func (a *Arrangement) Steps() (s string) {
 	var steps []string
 	for i, step := range a.stepData {
 		current := " "
