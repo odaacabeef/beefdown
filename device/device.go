@@ -13,7 +13,7 @@ import (
 )
 
 type Device struct {
-	send   func(midi.Message) error
+	sendF  func(midi.Message) error
 	ticker *time.Ticker
 	bpm    float64
 	loop   bool
@@ -35,9 +35,16 @@ func New() (*Device, error) {
 	}
 
 	return &Device{
-		send:  send,
+		sendF: send,
 		state: newState(),
 	}, nil
+}
+
+func (d *Device) send(mm midi.Message) {
+	err := d.sendF(mm)
+	if err != nil {
+		d.Errors <- err
+	}
 }
 
 func (d *Device) State() string {
@@ -54,10 +61,7 @@ func (d *Device) Stopped() bool {
 
 func (d *Device) silence() {
 	for _, m := range midi.SilenceChannel(-1) {
-		err := d.send(m)
-		if err != nil {
-			d.Errors <- err
-		}
+		d.send(m)
 	}
 }
 
@@ -105,10 +109,7 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, c
 		ch <- clockIdx
 		// stop followers
 		if d.sync == "leader" {
-			err := d.send(midi.Stop())
-			if err != nil {
-				d.Errors <- err
-			}
+			d.send(midi.Stop())
 		}
 	}()
 
@@ -140,18 +141,10 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, c
 							case <-t:
 								p.UpdateStep(sidx)
 								for _, m := range sm.Off {
-									err := d.send(m)
-									if err != nil {
-										d.Errors <- err
-										return
-									}
+									d.send(m)
 								}
 								for _, m := range sm.On {
-									err := d.send(m)
-									if err != nil {
-										d.Errors <- err
-										return
-									}
+									d.send(m)
 								}
 							}
 						}
@@ -168,17 +161,9 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, c
 							return
 						case <-d.ticker.C:
 							if d.sync == "leader" {
-								err := d.send(midi.TimingClock())
-								if err != nil {
-									d.Errors <- err
-									break
-								}
+								d.send(midi.TimingClock())
 								if clockIdx == 0 {
-									err := d.send(midi.Start())
-									if err != nil {
-										d.Errors <- err
-										break
-									}
+									d.send(midi.Start())
 								}
 							}
 							for i, t := range tick {
