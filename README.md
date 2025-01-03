@@ -180,15 +180,21 @@ gb1
 gb1
 ```
 
-```seq.part name:ks-1 group:drums ch:16
+```seq.part name:ks-1 group:drums ch:16 div:8th
+
+
+
+
+
 
 
 
 
 
 c1
+c1
    d1
-
+c1
 ```
 
 ```seq.part name:ks-2 group:drums ch:16
@@ -208,18 +214,14 @@ Arrangements are collections of parts.
 
 `seq.arrangement name:<name> group:<group>`
 
-```seq.arrangement name:tlteswt group:drums
-ks-2 hh-3
-```
-
-```seq.arrangement name:kshh group:drums
+```seq.arrangement name:kick-snare-hi-hat group:drums
 ks-2 hh-1
 ks-2 hh-2
 ks-2 hh-3
 ks-2 hh-4
 ```
 
-```seq.arrangement name:all group:last
+```seq.arrangement name:all-the-parts group:last
 ks-1 hh-1 a
 ks-2 hh-1 a-
 ks-2 hh-1 a-
