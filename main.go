@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/trotttrotttrott/seq/ui"
+	"github.com/odaacabeef/beefdown/ui"
 )
 
 func main() {

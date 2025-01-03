@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/trotttrotttrott/seq/device"
-	"github.com/trotttrotttrott/seq/sequence"
+	"github.com/odaacabeef/beefdown/device"
+	"github.com/odaacabeef/beefdown/sequence"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"

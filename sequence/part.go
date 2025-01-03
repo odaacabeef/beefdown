@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/trotttrotttrott/seq/music"
+	"github.com/odaacabeef/beefdown/music"
 
 	"gitlab.com/gomidi/midi/v2"
 )

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/trotttrotttrott/seq/sequence"
+	"github.com/odaacabeef/beefdown/sequence"
 
 	"gitlab.com/gomidi/midi/v2"
 	"gitlab.com/gomidi/midi/v2/drivers"
