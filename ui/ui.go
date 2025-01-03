@@ -176,23 +176,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				for _, p := range m.sequence.Playable {
 					p.ClearStep()
 				}
-				selected := 0
-				for i, g := range m.groupNames {
-					switch {
-					case i < m.selected.y:
-						selected += len(m.groups[g])
-					case i == m.selected.y:
-						selected += m.selected.x
-					default:
-						continue
-					}
-				}
-				p := m.sequence.Playable[selected]
+				p := m.groups[m.groupNames[m.selected.y]][m.selected.x]
 				m.playing = &m.selected
 				ctx, stop := context.WithCancel(context.Background())
 				m.stop = stop
 				m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.clock)
 				return m, listenForDeviceTick(m.clock)
+
 			case m.device.Playing():
 				m.stop()
 			}
