@@ -1,6 +1,6 @@
 # beefdown
 
-A markdown-driven MIDI seqencer.
+A markdown-driven MIDI sequencer.
 
 ## Sequences
 
@@ -209,7 +209,7 @@ c1
 
 ```
 
-### Arrangmements
+### Arrangements
 
 Arrangements are collections of parts.
 
