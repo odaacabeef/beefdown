@@ -118,7 +118,7 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, c
 
 				// append 'empty part' with the maximum number of steps to ensure our
 				// wait group waits for the last clock message of the arrangement step
-				stepParts = append(stepParts, sequence.EmptyPart())
+				stepParts = append(stepParts, sequence.EmptyPart(stepParts))
 				for pidx, p := range stepParts {
 					wg.Add(1)
 					tick = append(tick, make(chan bool))
@@ -149,6 +149,7 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, c
 					}(tick[pidx])
 				}
 				go func() {
+					stepCounts := map[int]int{}
 					for {
 						select {
 						case <-ctx.Done():
@@ -158,8 +159,9 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, c
 							return
 						case <-d.ticker.C:
 							for i, t := range tick {
-								if clockIdx%stepParts[i].Div() == 0 {
+								if clockIdx%stepParts[i].Div() == 0 && stepCounts[i] < len(stepParts[i].StepMIDI) {
 									t <- true
+									stepCounts[i]++
 								}
 							}
 							ch <- clockIdx
