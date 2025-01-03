@@ -100,11 +100,8 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, c
 	defer d.state.stop()
 	defer d.silence()
 
-	delay := d.beat
 	clockIdx := 0
 	defer func() {
-		// delay a beat to avoid interrupting the last beat
-		time.Sleep(delay)
 		// final message
 		ch <- clockIdx
 		// stop followers
@@ -155,7 +152,6 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, c
 					for {
 						select {
 						case <-ctx.Done():
-							delay = 0 // interrupted, don't delay
 							break
 						case <-stepDone:
 							return
