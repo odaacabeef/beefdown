@@ -24,6 +24,7 @@ Metadata blocks contain global configuration.
 ```seq.metadata
 bpm:150
 loop:true
+# sync:leader (wip)
 ```
 
 ### Parts

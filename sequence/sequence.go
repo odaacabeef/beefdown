@@ -12,6 +12,7 @@ type Sequence struct {
 	metadata metadata
 	BPM      float64
 	Loop     bool
+	Sync     string
 
 	Parts        []*Part
 	Arrangements []*Arrangement
@@ -63,6 +64,7 @@ func (s *Sequence) parse() error {
 			}
 			s.BPM = bpm
 			s.Loop = s.metadata.loop()
+			s.Sync = s.metadata.sync()
 
 		case strings.HasPrefix(m, ".part"):
 

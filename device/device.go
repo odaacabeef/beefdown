@@ -17,6 +17,7 @@ type Device struct {
 	ticker *time.Ticker
 	bpm    float64
 	loop   bool
+	sync   string
 	beat   time.Duration
 	state  state
 	Errors chan (error)
@@ -60,7 +61,7 @@ func (d *Device) silence() {
 	}
 }
 
-func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool, ch chan int) {
+func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool, sync string, ch chan int) {
 
 	if !d.state.stopped() {
 		return
@@ -68,6 +69,7 @@ func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool,
 
 	d.bpm = bpm
 	d.loop = loop
+	d.sync = sync
 
 	switch playable.(type) {
 	case *sequence.Arrangement:
@@ -101,6 +103,13 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, c
 		time.Sleep(delay)
 		// final message
 		ch <- clockIdx
+		// stop followers
+		if d.sync == "leader" {
+			err := d.send(midi.Stop())
+			if err != nil {
+				d.Errors <- err
+			}
+		}
 	}()
 
 	d.state.play()
@@ -158,6 +167,20 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, c
 						case <-stepDone:
 							return
 						case <-d.ticker.C:
+							if d.sync == "leader" {
+								err := d.send(midi.TimingClock())
+								if err != nil {
+									d.Errors <- err
+									break
+								}
+								if clockIdx == 0 {
+									err := d.send(midi.Start())
+									if err != nil {
+										d.Errors <- err
+										break
+									}
+								}
+							}
 							for i, t := range tick {
 								if clockIdx%stepParts[i].Div() == 0 && stepCounts[i] < len(stepParts[i].StepMIDI) {
 									t <- true

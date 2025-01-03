@@ -180,7 +180,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.playing = &m.selected
 				ctx, stop := context.WithCancel(context.Background())
 				m.stop = stop
-				m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.clock)
+				m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync, m.clock)
 				return m, listenForDeviceTick(m.clock)
 
 			case m.device.Playing():
@@ -198,7 +198,7 @@ func (m model) View() string {
 
 	s := ""
 
-	s += st.metadata().Render(fmt.Sprintf("%s; bpm: %f; loop: %v", m.sequence.Path, m.sequence.BPM, m.sequence.Loop))
+	s += st.metadata().Render(fmt.Sprintf("%s; bpm: %f; loop: %v; sync: %s", m.sequence.Path, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync))
 
 	s += st.state().Render(fmt.Sprintf("state: %s", m.device.State()))
 

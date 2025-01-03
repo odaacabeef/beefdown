@@ -65,6 +65,18 @@ func (m metadata) loop() bool {
 	return false
 }
 
+func (m metadata) sync() string {
+	re := regexp.MustCompile(`sync:(leader)`)
+	match := re.FindStringSubmatch(string(m))
+	if len(match) > 0 {
+		switch match[1] {
+		case "leader":
+			return match[1]
+		}
+	}
+	return "none"
+}
+
 func (m metadata) div() int {
 	re := regexp.MustCompile(`div:(8th-triplet|8th|16th|32nd)`)
 	match := re.FindStringSubmatch(string(m))
