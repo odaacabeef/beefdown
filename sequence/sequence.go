@@ -49,7 +49,7 @@ func (s *Sequence) parse() error {
 		return err
 	}
 
-	re := regexp.MustCompile("(?sm)^```seq(.*?)\n^```")
+	re := regexp.MustCompile("(?sm)^```beef(.*?)\n^```")
 	for _, b := range re.FindAllStringSubmatch(string(md), -1) {
 		lines := strings.Split(b[1], "\n")
 
