@@ -18,6 +18,8 @@ const (
 	reNote  = `\b([abcdefg][b,#]?)([[:digit:]]+):?([[:digit:]])?\b`
 	reChord = `\b([ABCDEFG][b,#]?)(m7|M7|7|M|m):?([[:digit:]])?\b`
 	reMult  = `\*([[:digit:]]+)`
+
+	reCodeBlocks = "(?sm)^```beef(.*?)\n^```"
 )
 
 type Sequence struct {
@@ -64,7 +66,7 @@ func (s *Sequence) parse() error {
 		return err
 	}
 
-	re := regexp.MustCompile("(?sm)^```beef(.*?)\n^```")
+	re := regexp.MustCompile(reCodeBlocks)
 	for _, b := range re.FindAllStringSubmatch(string(md), -1) {
 		lines := strings.Split(b[1], "\n")
 
