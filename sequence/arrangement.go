@@ -76,7 +76,7 @@ func (a *Arrangement) Steps() (s string) {
 		if a.currentStep != nil && *a.currentStep == i {
 			current = ">"
 		}
-		steps = append(steps, fmt.Sprintf("%s %d  %s", current, i+1, step))
+		steps = append(steps, fmt.Sprintf("%s %*d  %s", current, len(strconv.Itoa(len(a.stepData))), i+1, step))
 	}
 	s += strings.Join(steps, "\n")
 	return
