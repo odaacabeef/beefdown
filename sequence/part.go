@@ -19,6 +19,7 @@ type Part struct {
 	div      int
 
 	stepData []string
+	stepMult []int
 	StepMIDI []partStep
 
 	currentStep *int
@@ -57,15 +58,34 @@ func (p *Part) parseMetadata() error {
 	return nil
 }
 
-func (p *Part) parseMIDI() error {
+func (p *Part) parseMIDI() (err error) {
 
-	re := regexp.MustCompile(`([[:alpha:]][b,#]?)([[:digit:]]+):?([[:digit:]])?`)
+	totalSteps := len(p.stepData)
+	reMult := regexp.MustCompile(reMult)
+	for _, sd := range p.stepData {
+		match := reMult.FindStringSubmatch(sd)
+		var mult int64 = 1
+		if len(match) > 0 {
+			mult, err = strconv.ParseInt(match[1], 10, 64)
+			if err != nil {
+				return err
+			}
+			totalSteps += int(mult - 1)
+		}
+		p.stepMult = append(p.stepMult, int(mult))
+	}
+	p.StepMIDI = make([]partStep, totalSteps)
 
-	p.StepMIDI = make([]partStep, len(p.stepData))
+	stepIdx := 0
+	reMsg := regexp.MustCompile(reNote)
+
+	var stepDataExpanded []string
 
 	for i, sd := range p.stepData {
 
-		for _, msgs := range re.FindAllStringSubmatch(sd, -1) {
+		stepDataExpanded = append(stepDataExpanded, sd)
+
+		for _, msgs := range reMsg.FindAllStringSubmatch(sd, -1) {
 			note, err := music.Note(msgs[1], msgs[2])
 			if err != nil {
 				return err
@@ -79,13 +99,21 @@ func (p *Part) parseMIDI() error {
 				}
 			}
 
-			p.StepMIDI[i].On = append(p.StepMIDI[i].On, midi.NoteOn(p.channel-1, *note, 100))
+			p.StepMIDI[stepIdx].On = append(p.StepMIDI[stepIdx].On, midi.NoteOn(p.channel-1, *note, 100))
 			if beats > 0 {
-				offIdx := (i + int(beats)) % len(p.StepMIDI)
+				offIdx := (stepIdx + int(beats)) % len(p.StepMIDI)
 				p.StepMIDI[offIdx].Off = append(p.StepMIDI[offIdx].Off, midi.NoteOff(p.channel-1, *note))
 			}
 		}
+		stepIdx++
+
+		for range p.stepMult[i] - 1 {
+			p.StepMIDI[stepIdx] = p.StepMIDI[stepIdx-1]
+			stepDataExpanded = append(stepDataExpanded, "")
+			stepIdx++
+		}
 	}
+	p.stepData = stepDataExpanded
 	return nil
 }
 

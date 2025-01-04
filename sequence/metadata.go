@@ -8,7 +8,7 @@ import (
 type metadata string
 
 func (m metadata) name() string {
-	re := regexp.MustCompile(`name:([0-9A-Za-z_-]+)`)
+	re := regexp.MustCompile(reName)
 	match := re.FindStringSubmatch(string(m))
 	if len(match) > 0 {
 		return match[1]
@@ -17,7 +17,7 @@ func (m metadata) name() string {
 }
 
 func (m metadata) group() string {
-	re := regexp.MustCompile(`group:([0-9A-Za-z_-]+)`)
+	re := regexp.MustCompile(reGroup)
 	match := re.FindStringSubmatch(string(m))
 	if len(match) > 0 {
 		return match[1]
@@ -26,7 +26,7 @@ func (m metadata) group() string {
 }
 
 func (m metadata) channel() (uint8, error) {
-	re := regexp.MustCompile(`ch:([0-9]+)`)
+	re := regexp.MustCompile(reChannel)
 	match := re.FindStringSubmatch(string(m))
 	if len(match) > 0 {
 		num, err := strconv.ParseUint(match[1], 10, 8)
@@ -39,7 +39,7 @@ func (m metadata) channel() (uint8, error) {
 }
 
 func (m metadata) bpm() (float64, error) {
-	re := regexp.MustCompile(`bpm:([0-9]+\.?[0-9]+?)`)
+	re := regexp.MustCompile(reBPM)
 	match := re.FindStringSubmatch(string(m))
 	if len(match) > 0 {
 		num, err := strconv.ParseFloat(match[1], 64)
@@ -52,7 +52,7 @@ func (m metadata) bpm() (float64, error) {
 }
 
 func (m metadata) loop() bool {
-	re := regexp.MustCompile(`loop:(true|false)`)
+	re := regexp.MustCompile(reLoop)
 	match := re.FindStringSubmatch(string(m))
 	if len(match) > 0 {
 		switch match[1] {
@@ -66,7 +66,7 @@ func (m metadata) loop() bool {
 }
 
 func (m metadata) sync() string {
-	re := regexp.MustCompile(`sync:(leader)`)
+	re := regexp.MustCompile(reSync)
 	match := re.FindStringSubmatch(string(m))
 	if len(match) > 0 {
 		switch match[1] {
@@ -78,7 +78,7 @@ func (m metadata) sync() string {
 }
 
 func (m metadata) div() int {
-	re := regexp.MustCompile(`div:(8th-triplet|8th|16th|32nd)`)
+	re := regexp.MustCompile(reDivision)
 	match := re.FindStringSubmatch(string(m))
 	if len(match) > 0 {
 		switch match[1] {

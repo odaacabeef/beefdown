@@ -119,79 +119,27 @@ gb1
 gb1
 ```
 
+For parts with repeated lines, you can multiply them. The next part repeats
+`gb1` 24 times.
+
 ```beef.part name:hh-3 group:drums ch:16 div:8th-triplet
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
+gb1 *24
 ```
 
 ```beef.part name:hh-4 group:drums ch:16 div:16th
-gb1
-gb1
-gb1
-gb1
+gb1     *4
     bb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
+gb1     *7
     bb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
+gb1     *7
     bb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
-gb1
+gb1     *7
     bb1
-gb1
-gb1
-gb1
+gb1     *3
 ```
 
 ```beef.part name:ks-1 group:drums ch:16 div:8th
-
-
-
-
-
-
-
-
-
-
+      *10
 c1
 c1
    d1
@@ -222,14 +170,12 @@ ks-2 hh-3
 ks-2 hh-4
 ```
 
+You can also multiply arrangement steps!
+
 ```beef.arrangement name:all-the-parts group:last
 ks-1 hh-1 a
-ks-2 hh-1 a-
-ks-2 hh-1 a-
-ks-2 hh-2 a- b
-ks-2 hh-2 a- b
-ks-2 hh-3 a- b
-ks-2 hh-3 a- b
-ks-2 hh-4 a- b
-ks-2 hh-4 a- b
+ks-2 hh-1 a-   *2
+ks-2 hh-2 a- b *2
+ks-2 hh-3 a- b *2
+ks-2 hh-4 a- b *2
 ```

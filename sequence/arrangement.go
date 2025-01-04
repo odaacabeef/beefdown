@@ -2,6 +2,8 @@ package sequence
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -21,17 +23,42 @@ func (a *Arrangement) parseMetadata() {
 	a.group = a.metadata.group()
 }
 
-func (a *Arrangement) parseParts(s Sequence) {
-	for i, sd := range a.stepData {
+func (a *Arrangement) parseParts(s Sequence) (err error) {
+
+	stepIdx := 0
+
+	var stepDataExpanded []string
+
+	for _, sd := range a.stepData {
+		stepDataExpanded = append(stepDataExpanded, sd)
 		a.Parts = append(a.Parts, []*Part{})
+		reMult := regexp.MustCompile(reMult)
+		match := reMult.FindStringSubmatch(sd)
+		var mult int64 = 1
+		if len(match) > 0 {
+			mult, err = strconv.ParseInt(match[1], 10, 64)
+			if err != nil {
+				return err
+			}
+		}
+
 		for _, name := range strings.Fields(sd) {
 			for _, p := range s.Parts {
 				if p.name == name {
-					a.Parts[i] = append(a.Parts[i], p)
+					a.Parts[stepIdx] = append(a.Parts[stepIdx], p)
 				}
 			}
 		}
+		stepIdx++
+
+		for range mult - 1 {
+			a.Parts = append(a.Parts, a.Parts[stepIdx-1])
+			stepDataExpanded = append(stepDataExpanded, "")
+			stepIdx++
+		}
 	}
+	a.stepData = stepDataExpanded
+	return nil
 }
 
 func (a *Arrangement) Group() (s string) {
