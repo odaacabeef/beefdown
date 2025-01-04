@@ -15,13 +15,13 @@ musical information.
 
 Before reading on, switch to code view: [README.md?plain=1](README.md?plain=1).
 
-### Metadata
+### Sequence
 
-Metadata blocks contain global configuration.
+Sequence blocks contain global configuration.
 
-`beef.metadata`
+`beef.sequence`
 
-```beef.metadata
+```beef.sequence
 bpm:150
 loop:true
 # sync:leader (wip)

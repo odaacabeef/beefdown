@@ -198,7 +198,7 @@ func (m model) View() string {
 
 	s := ""
 
-	s += st.metadata().Render(fmt.Sprintf("%s; bpm: %f; loop: %v; sync: %s", m.sequence.Path, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync))
+	s += st.sequence().Render(fmt.Sprintf("%s; bpm: %f; loop: %v; sync: %s", m.sequence.Path, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync))
 
 	s += st.state().Render(fmt.Sprintf("state: %s", m.device.State()))
 

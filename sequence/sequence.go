@@ -73,15 +73,8 @@ func (s *Sequence) parse() error {
 		m := lines[0]
 
 		switch {
-		case strings.HasPrefix(m, ".metadata"):
+		case strings.HasPrefix(m, ".sequence"):
 			s.metadata = metadata(b[1])
-			bpm, err := s.metadata.bpm()
-			if err != nil {
-				return err
-			}
-			s.BPM = bpm
-			s.Loop = s.metadata.loop()
-			s.Sync = s.metadata.sync()
 
 		case strings.HasPrefix(m, ".part"):
 
@@ -118,5 +111,21 @@ func (s *Sequence) parse() error {
 		}
 	}
 
+	err = s.parseMetadata()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Sequence) parseMetadata() error {
+	bpm, err := s.metadata.bpm()
+	if err != nil {
+		return err
+	}
+	s.BPM = bpm
+	s.Loop = s.metadata.loop()
+	s.Sync = s.metadata.sync()
 	return nil
 }
