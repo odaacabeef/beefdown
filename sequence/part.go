@@ -77,20 +77,33 @@ func (p *Part) parseMIDI() (err error) {
 	p.StepMIDI = make([]partStep, totalSteps)
 
 	stepIdx := 0
-	reMsg := regexp.MustCompile(reNote)
+	reNote := regexp.MustCompile(reNote)
+	reChord := regexp.MustCompile(reChord)
 
 	var stepDataExpanded []string
 
 	for i, sd := range p.stepData {
-
 		stepDataExpanded = append(stepDataExpanded, sd)
-
-		for _, msgs := range reMsg.FindAllStringSubmatch(sd, -1) {
+		for _, msgs := range reNote.FindAllStringSubmatch(sd, -1) {
 			note, err := music.Note(msgs[1], msgs[2])
 			if err != nil {
 				return err
 			}
+			beats := int64(0)
+			if msgs[3] != "" {
+				beats, err = strconv.ParseInt(msgs[3], 10, 64)
+				if err != nil {
+					return err
+				}
+			}
+			p.StepMIDI[stepIdx].On = append(p.StepMIDI[stepIdx].On, midi.NoteOn(p.channel-1, *note, 100))
+			if beats > 0 {
+				offIdx := (stepIdx + int(beats)) % len(p.StepMIDI)
+				p.StepMIDI[offIdx].Off = append(p.StepMIDI[offIdx].Off, midi.NoteOff(p.channel-1, *note))
+			}
+		}
 
+		for _, msgs := range reChord.FindAllStringSubmatch(sd, -1) {
 			beats := int64(0)
 			if msgs[3] != "" {
 				beats, err = strconv.ParseInt(msgs[3], 10, 64)
@@ -99,10 +112,12 @@ func (p *Part) parseMIDI() (err error) {
 				}
 			}
 
-			p.StepMIDI[stepIdx].On = append(p.StepMIDI[stepIdx].On, midi.NoteOn(p.channel-1, *note, 100))
-			if beats > 0 {
-				offIdx := (stepIdx + int(beats)) % len(p.StepMIDI)
-				p.StepMIDI[offIdx].Off = append(p.StepMIDI[offIdx].Off, midi.NoteOff(p.channel-1, *note))
+			for _, note := range music.Chord(msgs[1], msgs[2]) {
+				p.StepMIDI[stepIdx].On = append(p.StepMIDI[stepIdx].On, midi.NoteOn(p.channel-1, note, 100))
+				if beats > 0 {
+					offIdx := (stepIdx + int(beats)) % len(p.StepMIDI)
+					p.StepMIDI[offIdx].Off = append(p.StepMIDI[offIdx].Off, midi.NoteOff(p.channel-1, note))
+				}
 			}
 		}
 		stepIdx++
