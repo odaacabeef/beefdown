@@ -30,22 +30,6 @@ type partStep struct {
 	Off []midi.Message
 }
 
-// EmptyPart creates a part with the maximum number of steps.
-func EmptyPart(parts []*Part) (p *Part) {
-	var mostBeats int
-	for _, part := range parts {
-		beats := len(part.StepMIDI) * part.Div()
-		if beats > mostBeats {
-			mostBeats = beats
-		}
-	}
-	p = &Part{
-		div:      1,
-		StepMIDI: make([]partStep, mostBeats),
-	}
-	return
-}
-
 func (p *Part) parseMetadata() error {
 	p.name = p.metadata.name()
 	p.group = p.metadata.group()

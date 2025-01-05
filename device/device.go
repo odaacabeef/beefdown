@@ -87,6 +87,7 @@ func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool,
 				},
 			},
 		}
+		a.AppendSyncParts()
 		go d.playArrangement(ctx, &a, ch)
 	}
 }
@@ -122,10 +123,6 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, c
 				var wg sync.WaitGroup
 				var tick []chan bool
 				stepDone := make(chan bool)
-
-				// append 'empty part' with the maximum number of steps to ensure our
-				// wait group waits for the last clock message of the arrangement step
-				stepParts = append(stepParts, sequence.EmptyPart(stepParts))
 				for pidx, p := range stepParts {
 					wg.Add(1)
 					tick = append(tick, make(chan bool))

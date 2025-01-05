@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"gitlab.com/gomidi/midi/v2"
 )
 
 type Arrangement struct {
@@ -59,6 +61,30 @@ func (a *Arrangement) parseParts(s Sequence) (err error) {
 	}
 	a.stepData = stepDataExpanded
 	return nil
+}
+
+// AppendSyncParts appends a "sync part" to each part step. It uses the maximum
+// number of beats which ensures each step is timed correctly.
+//
+// It also carries off messages that need to be sent on the last possible beat.
+func (a *Arrangement) AppendSyncParts() {
+	var offMsgs []midi.Message
+	for i, stepParts := range a.Parts {
+		var mostBeats int
+		for _, part := range stepParts {
+			beats := len(part.StepMIDI) * part.Div()
+			if beats > mostBeats {
+				mostBeats = beats
+			}
+			offMsgs = append(offMsgs, part.StepMIDI[0].Off...)
+		}
+		p := &Part{
+			div:      1,
+			StepMIDI: make([]partStep, mostBeats),
+		}
+		p.StepMIDI[mostBeats-1].Off = offMsgs
+		a.Parts[i] = append(a.Parts[i], p)
+	}
 }
 
 func (a *Arrangement) Group() (s string) {
