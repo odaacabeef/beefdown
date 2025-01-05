@@ -24,7 +24,7 @@ Sequence blocks contain global configuration.
 ```beef.sequence
 bpm:150
 loop:true
-# sync:leader (wip)
+sync:none
 ```
 
 ### Parts
