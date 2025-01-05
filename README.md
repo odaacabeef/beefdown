@@ -59,7 +59,7 @@ c4:1
 Horizontal space is irrelevant. Do whatever makes the most sense to you
 visually.
 
-```beef.part name:a-
+```beef.part name:a'
 c4:8      d3:8
 
      a2:6
@@ -174,8 +174,8 @@ You can also multiply arrangement steps!
 
 ```beef.arrangement name:all-the-parts group:last
 ks-1 hh-1 a
-ks-2 hh-1 a-   *2
-ks-2 hh-2 a- b *2
-ks-2 hh-3 a- b *2
-ks-2 hh-4 a- b *2
+ks-2 hh-1 a'   *2
+ks-2 hh-2 a' b *2
+ks-2 hh-3 a' b *2
+ks-2 hh-4 a' b *2
 ```

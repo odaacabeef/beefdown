@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	reName     = `name:([0-9A-Za-z_-]+)`
+	reName     = `name:([0-9A-Za-z'_-]+)`
 	reGroup    = `group:([0-9A-Za-z_-]+)`
 	reChannel  = `ch:([0-9]+)`
 	reBPM      = `bpm:([0-9]+\.?[0-9]+?)`
