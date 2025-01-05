@@ -173,6 +173,9 @@ c1
 ```
 ````
 
+Parts also have basic chord support. Run
+[examples/chords-ii-v-i.md](examples/chords-ii-v-i.md) to see how that works.
+
 ### Arrangements
 
 Arrangements are collections of parts.
