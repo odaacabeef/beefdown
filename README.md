@@ -175,6 +175,8 @@ c1
 ```
 ````
 
+All notes are sent with a velocity of 100.
+
 Parts also have basic chord support. Run
 [examples/chords-ii-v-i.md](examples/chords-ii-v-i.md) to see how that works.
 
