@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/odaacabeef/beefdown/device"
@@ -96,8 +97,16 @@ func listenForDeviceTick(c chan int) tea.Cmd {
 	}
 }
 
+type deviceError error
+
+func listenForDeviceErrors(err chan error) tea.Cmd {
+	return func() tea.Msg {
+		return deviceError(<-err)
+	}
+}
+
 func (m model) Init() tea.Cmd {
-	return nil
+	return listenForDeviceErrors(m.device.Errors)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -110,6 +119,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case m.device.Playing():
 			return m, listenForDeviceTick(m.clock)
 		}
+
+	case deviceError:
+		m.errs = append(m.errs, msg)
+		return m, listenForDeviceErrors(m.device.Errors)
 
 	case tea.KeyMsg:
 
@@ -203,7 +216,13 @@ func (m model) View() string {
 	s += st.state().Render(fmt.Sprintf("state: %s", m.device.State()))
 
 	if len(m.errs) > 0 {
-		s += st.errors().Render(fmt.Sprintf("%v", m.errs))
+		var errstr []string
+		for _, err := range m.errs {
+			errstr = append(errstr, err.Error())
+		}
+		errstr = append(errstr, fmt.Sprintf("%d errors:", len(m.errs)))
+		slices.Reverse(errstr)
+		s += st.errors().Render(strings.Join(errstr, "\n"))
 	}
 
 	for gIdx, g := range m.groupNames {

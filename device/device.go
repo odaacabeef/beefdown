@@ -22,7 +22,7 @@ type Device struct {
 	sync   string
 	beat   time.Duration
 	state  state
-	Errors chan (error)
+	Errors chan error
 }
 
 func New() (*Device, error) {
@@ -37,8 +37,9 @@ func New() (*Device, error) {
 	}
 
 	return &Device{
-		sendF: send,
-		state: newState(),
+		sendF:  send,
+		state:  newState(),
+		Errors: make(chan error),
 	}, nil
 }
 
@@ -165,9 +166,6 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, c
 				}()
 				wg.Wait()
 				stepDone <- true
-				if len(d.Errors) > 0 {
-					return
-				}
 			}
 		}
 		if !d.loop {

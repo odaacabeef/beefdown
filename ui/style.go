@@ -18,8 +18,10 @@ func (s style) sequence() lipgloss.Style {
 
 func (s style) errors() lipgloss.Style {
 	return lipgloss.NewStyle().
-		Padding(0, 1).
-		Margin(0, 1)
+		Foreground(lipgloss.Color("9")).
+		Padding(1).
+		Margin(0, 1).
+		MaxHeight(10)
 }
 
 func (s style) playable(selected, playing bool) lipgloss.Style {
