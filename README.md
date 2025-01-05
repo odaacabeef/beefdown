@@ -27,6 +27,8 @@ sync:none
 ```
 ````
 
+See [docs/sync.md](docs/sync.md) for more info on the `sync` setting.
+
 ### Parts
 
 Parts are collections of notes.
