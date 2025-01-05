@@ -81,16 +81,7 @@ func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool,
 	case *sequence.Arrangement:
 		go d.playArrangement(ctx, playable.(*sequence.Arrangement), ch)
 	case *sequence.Part:
-		p := playable.(*sequence.Part)
-		a := sequence.Arrangement{
-			Parts: [][]*sequence.Part{
-				{
-					p,
-				},
-			},
-		}
-		a.AppendSyncParts()
-		go d.playArrangement(ctx, &a, ch)
+		go d.playArrangement(ctx, playable.(*sequence.Part).Arrangement(), ch)
 	}
 }
 

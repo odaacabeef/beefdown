@@ -105,7 +105,7 @@ func (s *Sequence) parse() error {
 
 			a.parseMetadata()
 			a.parseParts(*s)
-			a.AppendSyncParts()
+			a.appendSyncParts()
 
 			s.Arrangements = append(s.Arrangements, &a)
 			s.Playable = append(s.Playable, &a)

@@ -125,6 +125,18 @@ func (p *Part) parseMIDI() (err error) {
 	return nil
 }
 
+func (p *Part) Arrangement() *Arrangement {
+	a := Arrangement{
+		Parts: [][]*Part{
+			{
+				p,
+			},
+		},
+	}
+	a.appendSyncParts()
+	return &a
+}
+
 func (p *Part) Group() string {
 	return p.group
 }

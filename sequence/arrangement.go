@@ -61,12 +61,12 @@ func (a *Arrangement) parseParts(s Sequence) (err error) {
 	return nil
 }
 
-// AppendSyncParts appends a "sync part" to each part step. It uses the maximum
+// appendSyncParts appends a "sync part" to each part step. It uses the maximum
 // number of beats which ensures each step is timed correctly.
 //
 // It also carries all off messages so they can be sent at the last possible
 // beat of the step where the note they control ends.
-func (a *Arrangement) AppendSyncParts() {
+func (a *Arrangement) appendSyncParts() {
 	for i, stepParts := range a.Parts {
 		var mostBeats int
 		for _, part := range stepParts {
