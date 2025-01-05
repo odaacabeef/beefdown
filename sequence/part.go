@@ -23,6 +23,8 @@ type Part struct {
 	StepMIDI []partStep
 
 	currentStep *int
+
+	offMessages map[int][]midi.Message
 }
 
 type partStep struct {
@@ -65,6 +67,7 @@ func (p *Part) parseMIDI() (err error) {
 	reChord := regexp.MustCompile(reChord)
 
 	var stepDataExpanded []string
+	p.offMessages = map[int][]midi.Message{}
 
 	for i, sd := range p.stepData {
 		stepDataExpanded = append(stepDataExpanded, sd)
@@ -82,8 +85,11 @@ func (p *Part) parseMIDI() (err error) {
 			}
 			p.StepMIDI[stepIdx].On = append(p.StepMIDI[stepIdx].On, midi.NoteOn(p.channel-1, *note, 100))
 			if beats > 0 {
-				offIdx := (stepIdx + int(beats)) % len(p.StepMIDI)
-				p.StepMIDI[offIdx].Off = append(p.StepMIDI[offIdx].Off, midi.NoteOff(p.channel-1, *note))
+				offIdx := stepIdx + int(beats)
+				endOfBeat := offIdx*p.Div() - 1
+				if endOfBeat <= len(p.StepMIDI)*p.Div() {
+					p.offMessages[endOfBeat] = append(p.offMessages[endOfBeat], midi.NoteOff(p.channel-1, *note))
+				}
 			}
 		}
 
@@ -99,8 +105,11 @@ func (p *Part) parseMIDI() (err error) {
 			for _, note := range music.Chord(msgs[1], msgs[2]) {
 				p.StepMIDI[stepIdx].On = append(p.StepMIDI[stepIdx].On, midi.NoteOn(p.channel-1, note, 100))
 				if beats > 0 {
-					offIdx := (stepIdx + int(beats)) % len(p.StepMIDI)
-					p.StepMIDI[offIdx].Off = append(p.StepMIDI[offIdx].Off, midi.NoteOff(p.channel-1, note))
+					offIdx := stepIdx + int(beats)
+					endOfBeat := offIdx*p.Div() - 1
+					if endOfBeat <= len(p.StepMIDI)*p.Div() {
+						p.offMessages[endOfBeat] = append(p.offMessages[endOfBeat], midi.NoteOff(p.channel-1, note))
+					}
 				}
 			}
 		}
