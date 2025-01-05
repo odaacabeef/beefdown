@@ -10,6 +10,8 @@ This file is a sequence. Run it with:
 go run . README.md
 ```
 
+![screenshot](/docs/screenshot.png)
+
 Code blocks with `beef` prefixed language identifiers are used to specify
 musical information.
 
@@ -70,7 +72,7 @@ c4:8      d3:8
 ```
 ````
 
-The next part will be sent on channel 2.
+By default parts are sent on channel 1. The next part will be sent on channel 2.
 
 ````
 ```beef.part name:b ch:2
