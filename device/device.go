@@ -12,6 +12,8 @@ import (
 	"gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
 )
 
+const deviceName = "beefdown"
+
 type Device struct {
 	sendF  func(midi.Message) error
 	ticker *time.Ticker
@@ -25,7 +27,7 @@ type Device struct {
 
 func New() (*Device, error) {
 
-	out, err := drivers.Get().(*rtmididrv.Driver).OpenVirtualOut("seq")
+	out, err := drivers.Get().(*rtmididrv.Driver).OpenVirtualOut(deviceName)
 	if err != nil {
 		return nil, err
 	}
