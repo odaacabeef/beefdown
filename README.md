@@ -15,6 +15,8 @@ go run . README.md
 Code blocks with `beef` prefixed language identifiers are used to specify
 musical information.
 
+See [docs/controls.md](docs/controls.md) for application controls.
+
 ### Sequence
 
 Sequence blocks contain global configuration.
