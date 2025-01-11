@@ -24,6 +24,11 @@ func (s style) errors() lipgloss.Style {
 		MaxHeight(10)
 }
 
+func (s style) warnings() lipgloss.Style {
+	return s.errors().
+		Foreground(lipgloss.Color("11"))
+}
+
 func (s style) playable(selected, playing bool) lipgloss.Style {
 	base := lipgloss.NewStyle().
 		Padding(0, 1).

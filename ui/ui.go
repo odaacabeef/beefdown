@@ -224,6 +224,10 @@ func (m model) View() string {
 		slices.Reverse(errstr)
 		s += st.errors().Render(strings.Join(errstr, "\n"))
 	}
+	w := m.sequence.Warnings()
+	if len(w) > 0 {
+		s += st.warnings().Render(strings.Join(w, "\n"))
+	}
 
 	for gIdx, g := range m.groupNames {
 		var sb strings.Builder

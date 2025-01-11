@@ -7,4 +7,5 @@ type Playable interface {
 	CurrentStep() *int
 	UpdateStep(int)
 	ClearStep()
+	Warnings() []string
 }

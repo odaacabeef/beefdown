@@ -25,6 +25,8 @@ type Part struct {
 	currentStep *int
 
 	offMessages map[int][]midi.Message
+
+	warnings []string
 }
 
 type partStep struct {
@@ -46,6 +48,7 @@ func (p *Part) parseMetadata() error {
 
 func (p *Part) parseMIDI() (err error) {
 
+	// determine length
 	totalSteps := len(p.stepData)
 	reMult := regexp.MustCompile(reMult)
 	for _, sd := range p.stepData {
@@ -69,6 +72,7 @@ func (p *Part) parseMIDI() (err error) {
 	var stepDataExpanded []string
 	p.offMessages = map[int][]midi.Message{}
 
+	// parse notes
 	for i, sd := range p.stepData {
 		stepDataExpanded = append(stepDataExpanded, sd)
 		for _, msgs := range reNote.FindAllStringSubmatch(sd, -1) {
@@ -93,6 +97,7 @@ func (p *Part) parseMIDI() (err error) {
 			}
 		}
 
+		// parse chords
 		for _, msgs := range reChord.FindAllStringSubmatch(sd, -1) {
 			beats := int64(0)
 			if msgs[3] != "" {
@@ -172,4 +177,8 @@ func (p *Part) UpdateStep(i int) {
 
 func (p *Part) ClearStep() {
 	p.currentStep = nil
+}
+
+func (p *Part) Warnings() []string {
+	return p.warnings
 }

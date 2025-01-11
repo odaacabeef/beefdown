@@ -105,3 +105,14 @@ func (s *Sequence) parseMetadata() error {
 	s.Sync = s.metadata.sync()
 	return nil
 }
+
+func (s *Sequence) Warnings() []string {
+	var w []string
+	for _, p := range s.Playable {
+		pw := p.Warnings()
+		if len(pw) > 0 {
+			w = append(w, pw...)
+		}
+	}
+	return w
+}

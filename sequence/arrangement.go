@@ -16,6 +16,8 @@ type Arrangement struct {
 	Parts    [][]*Part
 
 	currentStep *int
+
+	warnings []string
 }
 
 func (a *Arrangement) parseMetadata() {
@@ -42,12 +44,18 @@ func (a *Arrangement) parseParts(s Sequence) (err error) {
 			}
 		}
 
+	matchPlayable:
 		for _, name := range strings.Fields(sd) {
+			if !regexp.MustCompile("^" + reName).MatchString(name) {
+				continue
+			}
 			for _, p := range s.Parts {
 				if p.name == name {
 					a.Parts[stepIdx] = append(a.Parts[stepIdx], p)
+					continue matchPlayable
 				}
 			}
+			a.warnings = append(a.warnings, fmt.Sprintf("%s: %q not found", a.name, name))
 		}
 		stepIdx++
 
@@ -119,4 +127,8 @@ func (a *Arrangement) UpdateStep(i int) {
 
 func (a *Arrangement) ClearStep() {
 	a.currentStep = nil
+}
+
+func (a *Arrangement) Warnings() []string {
+	return a.warnings
 }

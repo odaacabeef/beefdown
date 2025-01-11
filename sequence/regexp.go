@@ -11,11 +11,11 @@ const (
 	reMult  = `\*([[:digit:]]+)`
 
 	// metadata
-	reName     = `name:([0-9A-Za-z'_-]+)`
-	reGroup    = `group:([0-9A-Za-z_-]+)`
-	reChannel  = `ch:([0-9]+)`
-	reBPM      = `bpm:([0-9]+\.?[0-9]+?)`
-	reLoop     = `loop:(true|false)`
-	reSync     = `sync:(leader)`
-	reDivision = `div:(8th-triplet|8th|16th|32nd)`
+	reName     = `([0-9A-Za-z'_-]+)`
+	reGroup    = `([0-9A-Za-z_-]+)`
+	reChannel  = `([0-9]+)`
+	reBPM      = `([0-9]+\.?[0-9]+?)`
+	reLoop     = `(true|false)`
+	reSync     = `(leader)`
+	reDivision = `(8th-triplet|8th|16th|32nd)`
 )
