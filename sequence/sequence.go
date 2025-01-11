@@ -36,15 +36,6 @@ type Sequence struct {
 	Playable []Playable
 }
 
-type Playable interface {
-	Group() string
-	Title() string
-	Steps() string
-	CurrentStep() *int
-	UpdateStep(int)
-	ClearStep()
-}
-
 func New(p string) (*Sequence, error) {
 
 	s := Sequence{
