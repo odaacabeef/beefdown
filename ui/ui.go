@@ -102,11 +102,11 @@ func listenForDeviceStop(c chan struct{}) tea.Cmd {
 	}
 }
 
-type deviceTick int
+type deviceClock int
 
-func listenForDeviceTick(c chan int) tea.Cmd {
+func listenForDeviceClock(c chan int) tea.Cmd {
 	return func() tea.Msg {
-		return deviceTick(<-c)
+		return deviceClock(<-c)
 	}
 }
 
@@ -121,7 +121,7 @@ func listenForDeviceErrors(err chan error) tea.Cmd {
 func (m model) Init() tea.Cmd {
 	return tea.Batch(
 		listenForDevicePlay(m.device.PlayCh()),
-		listenForDeviceErrors(m.device.Errors()),
+		listenForDeviceErrors(m.device.ErrorsCh()),
 	)
 }
 
@@ -135,14 +135,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.playing = nil
 		return m, listenForDevicePlay(m.device.PlayCh())
 
-	case deviceTick:
+	case deviceClock:
 		if m.device.Playing() {
-			return m, listenForDeviceTick(m.device.Clock())
+			return m, listenForDeviceClock(m.device.ClockCh())
 		}
 
 	case deviceError:
 		m.errs = append(m.errs, msg)
-		return m, listenForDeviceErrors(m.device.Errors())
+		return m, listenForDeviceErrors(m.device.ErrorsCh())
 
 	case tea.KeyMsg:
 
@@ -214,7 +214,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				ctx, stop := context.WithCancel(context.Background())
 				m.stop = stop
 				m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
-				return m, listenForDeviceTick(m.device.Clock())
+				return m, listenForDeviceClock(m.device.ClockCh())
 
 			case m.device.Playing():
 				m.stop()

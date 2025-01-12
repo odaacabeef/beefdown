@@ -23,10 +23,10 @@ type Device struct {
 
 	ticker *time.Ticker
 
-	playCh chan struct{}
-	stopCh chan struct{}
-	clock  chan int
-	errors chan error
+	playCh   chan struct{}
+	stopCh   chan struct{}
+	clockCh  chan int
+	errorsCh chan error
 
 	sendF func(midi.Message) error
 }
@@ -43,19 +43,19 @@ func New() (*Device, error) {
 	}
 
 	return &Device{
-		sendF:  send,
-		state:  newState(),
-		playCh: make(chan struct{}),
-		stopCh: make(chan struct{}),
-		clock:  make(chan int),
-		errors: make(chan error),
+		sendF:    send,
+		state:    newState(),
+		playCh:   make(chan struct{}),
+		stopCh:   make(chan struct{}),
+		clockCh:  make(chan int),
+		errorsCh: make(chan error),
 	}, nil
 }
 
 func (d *Device) send(mm midi.Message) {
 	err := d.sendF(mm)
 	if err != nil {
-		d.errors <- err
+		d.errorsCh <- err
 	}
 }
 
@@ -67,12 +67,12 @@ func (d *Device) StopCh() chan struct{} {
 	return d.stopCh
 }
 
-func (d *Device) Clock() chan int {
-	return d.clock
+func (d *Device) ClockCh() chan int {
+	return d.clockCh
 }
 
-func (d *Device) Errors() chan error {
-	return d.errors
+func (d *Device) ErrorsCh() chan error {
+	return d.errorsCh
 }
 
 func (d *Device) State() string {
@@ -187,7 +187,7 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 									stepCounts[i]++
 								}
 							}
-							d.clock <- clockIdx
+							d.clockCh <- clockIdx
 							clockIdx++
 						}
 					}
