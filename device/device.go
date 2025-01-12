@@ -25,8 +25,10 @@ type Device struct {
 
 	playCh   chan struct{}
 	stopCh   chan struct{}
-	clockCh  chan int
+	clockCh  chan struct{}
 	errorsCh chan error
+
+	clockSub sub
 
 	sendF func(midi.Message) error
 }
@@ -47,8 +49,11 @@ func New() (*Device, error) {
 		state:    newState(),
 		playCh:   make(chan struct{}),
 		stopCh:   make(chan struct{}),
-		clockCh:  make(chan int),
+		clockCh:  make(chan struct{}),
 		errorsCh: make(chan error),
+		clockSub: sub{
+			ch: make(map[string]chan struct{}),
+		},
 	}, nil
 }
 
@@ -67,7 +72,7 @@ func (d *Device) StopCh() chan struct{} {
 	return d.stopCh
 }
 
-func (d *Device) ClockCh() chan int {
+func (d *Device) ClockCh() chan struct{} {
 	return d.clockCh
 }
 
@@ -133,14 +138,32 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 		d.send(midi.Start())
 	}
 
-	d.playRecursive(ctx, a, false)
+	go d.playRecursive(ctx, a, false)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-d.ticker.C:
+			d.clockSub.pub()
+			d.clockCh <- struct{}{}
+			if d.sync == "leader" {
+				d.send(midi.TimingClock())
+			}
+		}
+	}
 }
 
-// playRecursive this can be called for a top-level (primary) arrangement or
+// playRecursive can be called for a top-level (primary) arrangement or
 // recursively for arrangements nested within arrangements.
 func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, nested bool) {
 
 	clockIdx := 0
+
+	clockSub := make(chan struct{})
+	d.clockSub.sub(a.Name(), clockSub)
+
+	defer d.clockSub.unsub(a.Name())
 
 	for {
 		for aidx, stepPlayables := range a.Playables {
@@ -183,7 +206,6 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, nes
 						}()
 					}
 				}
-
 				go func() {
 					stepCounts := map[int]int{}
 					for {
@@ -192,18 +214,12 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, nes
 							break
 						case <-stepDone:
 							return
-						case <-d.ticker.C:
-							if d.sync == "leader" && !nested {
-								d.send(midi.TimingClock())
-							}
+						case <-clockSub:
 							for i, t := range tick {
 								if clockIdx%stepParts[i].Div() == 0 && stepCounts[i] < len(stepParts[i].StepMIDI) {
 									t <- struct{}{}
 									stepCounts[i]++
 								}
-							}
-							if !nested {
-								d.clockCh <- clockIdx
 							}
 							clockIdx++
 						}

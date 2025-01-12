@@ -102,9 +102,9 @@ func listenForDeviceStop(c chan struct{}) tea.Cmd {
 	}
 }
 
-type deviceClock int
+type deviceClock struct{}
 
-func listenForDeviceClock(c chan int) tea.Cmd {
+func listenForDeviceClock(c chan struct{}) tea.Cmd {
 	return func() tea.Msg {
 		return deviceClock(<-c)
 	}
