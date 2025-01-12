@@ -11,8 +11,8 @@ type Arrangement struct {
 	name     string
 	group    string
 
-	steps []step
-	Parts [][]*Part
+	steps     []step
+	Playables [][]Playable
 
 	currentStep *int
 
@@ -24,7 +24,7 @@ func (a *Arrangement) parseMetadata() {
 	a.group = a.metadata.group()
 }
 
-func (a *Arrangement) parseParts(s Sequence) (err error) {
+func (a *Arrangement) parsePlayables(s Sequence) (err error) {
 
 	stepIdx := 0
 
@@ -32,12 +32,13 @@ func (a *Arrangement) parseParts(s Sequence) (err error) {
 
 	for _, sd := range a.steps {
 
-		a.Parts = append(a.Parts, []*Part{})
+		a.Playables = append(a.Playables, []Playable{})
+
 	matchPlayable:
 		for _, name := range sd.names() {
-			for _, p := range s.Parts {
-				if p.name == name {
-					a.Parts[stepIdx] = append(a.Parts[stepIdx], p)
+			for _, p := range s.Playable {
+				if p.Name() == name {
+					a.Playables[stepIdx] = append(a.Playables[stepIdx], p)
 					continue matchPlayable
 				}
 			}
@@ -51,7 +52,7 @@ func (a *Arrangement) parseParts(s Sequence) (err error) {
 			return err
 		}
 		for range *mult - 1 {
-			a.Parts = append(a.Parts, a.Parts[stepIdx-1])
+			a.Playables = append(a.Playables, a.Playables[stepIdx-1])
 			stepsMult = append(stepsMult, "")
 			stepIdx++
 		}
@@ -66,25 +67,38 @@ func (a *Arrangement) parseParts(s Sequence) (err error) {
 // It also carries all off messages so they can be sent at the last possible
 // beat of the step where the note they control ends.
 func (a *Arrangement) appendSyncParts() {
-	for i, stepParts := range a.Parts {
+
+partsOnly:
+	for i, stepPlayables := range a.Playables {
 		var mostBeats int
-		for _, part := range stepParts {
-			beats := len(part.StepMIDI) * part.Div()
-			if beats > mostBeats {
-				mostBeats = beats
+		for _, playable := range stepPlayables {
+			switch playable.(type) {
+			case *Part:
+				part := playable.(*Part)
+				beats := len(part.StepMIDI) * part.Div()
+				if beats > mostBeats {
+					mostBeats = beats
+				}
+			case *Arrangement:
+				continue partsOnly
 			}
 		}
 		p := &Part{
 			div:      1,
 			StepMIDI: make([]partStep, mostBeats),
 		}
-		for _, part := range stepParts {
+		for _, playable := range stepPlayables {
+			part := playable.(*Part)
 			for i, msgs := range part.offMessages {
 				p.StepMIDI[i].Off = append(p.StepMIDI[i].Off, msgs...)
 			}
 		}
-		a.Parts[i] = append(a.Parts[i], p)
+		a.Playables[i] = append(a.Playables[i], p)
 	}
+}
+
+func (a *Arrangement) Name() (s string) {
+	return a.name
 }
 
 func (a *Arrangement) Group() (s string) {

@@ -83,7 +83,7 @@ func (s *Sequence) parse() error {
 			}
 
 			a.parseMetadata()
-			a.parseParts(*s)
+			a.parsePlayables(*s)
 			a.appendSyncParts()
 
 			s.Arrangements = append(s.Arrangements, &a)

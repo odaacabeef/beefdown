@@ -1,6 +1,7 @@
 package sequence
 
 type Playable interface {
+	Name() string
 	Group() string
 	Title() string
 	Steps() string

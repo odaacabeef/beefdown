@@ -128,7 +128,7 @@ func (p *Part) parseMIDI() (err error) {
 
 func (p *Part) Arrangement() *Arrangement {
 	a := Arrangement{
-		Parts: [][]*Part{
+		Playables: [][]Playable{
 			{
 				p,
 			},
@@ -136,6 +136,10 @@ func (p *Part) Arrangement() *Arrangement {
 	}
 	a.appendSyncParts()
 	return &a
+}
+
+func (p *Part) Name() string {
+	return p.name
 }
 
 func (p *Part) Group() string {
