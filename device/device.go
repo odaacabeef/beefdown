@@ -15,14 +15,18 @@ import (
 const deviceName = "beefdown"
 
 type Device struct {
-	sendF  func(midi.Message) error
+	bpm   float64
+	loop  bool
+	sync  string
+	beat  time.Duration
+	state state
+
 	ticker *time.Ticker
-	bpm    float64
-	loop   bool
-	sync   string
-	beat   time.Duration
-	state  state
+
+	clock  chan int
 	Errors chan error
+
+	sendF func(midi.Message) error
 }
 
 func New() (*Device, error) {
@@ -39,6 +43,7 @@ func New() (*Device, error) {
 	return &Device{
 		sendF:  send,
 		state:  newState(),
+		clock:  make(chan int),
 		Errors: make(chan error),
 	}, nil
 }
@@ -48,6 +53,10 @@ func (d *Device) send(mm midi.Message) {
 	if err != nil {
 		d.Errors <- err
 	}
+}
+
+func (d *Device) Clock() chan int {
+	return d.clock
 }
 
 func (d *Device) State() string {
@@ -68,7 +77,7 @@ func (d *Device) silence() {
 	}
 }
 
-func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool, sync string, ch chan int) {
+func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool, sync string) {
 
 	if !d.state.stopped() {
 		return
@@ -80,13 +89,13 @@ func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool,
 
 	switch playable.(type) {
 	case *sequence.Arrangement:
-		go d.playArrangement(ctx, playable.(*sequence.Arrangement), ch)
+		go d.playArrangement(ctx, playable.(*sequence.Arrangement))
 	case *sequence.Part:
-		go d.playArrangement(ctx, playable.(*sequence.Part).Arrangement(), ch)
+		go d.playArrangement(ctx, playable.(*sequence.Part).Arrangement())
 	}
 }
 
-func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, ch chan int) {
+func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 
 	d.beat = time.Duration(float64(time.Minute) / d.bpm)
 	d.ticker = time.NewTicker(d.beat / 24.0)
@@ -98,7 +107,7 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, c
 	clockIdx := 0
 	defer func() {
 		// final message
-		ch <- clockIdx
+		d.clock <- clockIdx
 		// stop followers
 		if d.sync == "leader" {
 			d.send(midi.Stop())
@@ -159,7 +168,7 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement, c
 									stepCounts[i]++
 								}
 							}
-							ch <- clockIdx
+							d.clock <- clockIdx
 							clockIdx++
 						}
 					}

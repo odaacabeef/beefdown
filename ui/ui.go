@@ -17,8 +17,6 @@ type model struct {
 	device   *device.Device
 	sequence *sequence.Sequence
 
-	clock chan int
-
 	groupNames []string
 	groups     map[string][]sequence.Playable
 	groupX     map[string]int
@@ -55,7 +53,6 @@ func initialModel(sequencePath string) (*model, error) {
 
 	m := model{
 		device: d,
-		clock:  make(chan int),
 	}
 
 	err = m.loadSequence(sequencePath)
@@ -117,7 +114,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case m.device.Stopped():
 			m.playing = nil
 		case m.device.Playing():
-			return m, listenForDeviceTick(m.clock)
+			return m, listenForDeviceTick(m.device.Clock())
 		}
 
 	case deviceError:
@@ -193,8 +190,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.playing = &m.selected
 				ctx, stop := context.WithCancel(context.Background())
 				m.stop = stop
-				m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync, m.clock)
-				return m, listenForDeviceTick(m.clock)
+				m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
+				return m, listenForDeviceTick(m.device.Clock())
 
 			case m.device.Playing():
 				m.stop()
