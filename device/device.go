@@ -131,6 +131,10 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 	}()
 
 	d.state.play()
+	d.playCh <- struct{}{}
+	if d.sync == "leader" {
+		d.send(midi.Start())
+	}
 
 	for {
 		for aidx, stepParts := range a.Parts {
@@ -172,13 +176,7 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 						case <-stepDone:
 							return
 						case <-d.ticker.C:
-							if clockIdx == 0 {
-								d.playCh <- struct{}{}
-							}
 							if d.sync == "leader" {
-								if clockIdx == 0 {
-									d.send(midi.Start())
-								}
 								d.send(midi.TimingClock())
 							}
 							for i, t := range tick {
