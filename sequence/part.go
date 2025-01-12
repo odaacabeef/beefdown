@@ -18,7 +18,7 @@ type Part struct {
 	channel  uint8
 	div      int
 
-	stepData []string
+	steps    []step
 	stepMult []int
 	StepMIDI []partStep
 
@@ -49,19 +49,14 @@ func (p *Part) parseMetadata() error {
 func (p *Part) parseMIDI() (err error) {
 
 	// determine length
-	totalSteps := len(p.stepData)
-	reMult := regexp.MustCompile(reMult)
-	for _, sd := range p.stepData {
-		match := reMult.FindStringSubmatch(sd)
-		var mult int64 = 1
-		if len(match) > 0 {
-			mult, err = strconv.ParseInt(match[1], 10, 64)
-			if err != nil {
-				return err
-			}
-			totalSteps += int(mult - 1)
+	totalSteps := len(p.steps)
+	for _, sd := range p.steps {
+		mult, err := sd.mult()
+		if err != nil {
+			return err
 		}
-		p.stepMult = append(p.stepMult, int(mult))
+		totalSteps += int(*mult - 1)
+		p.stepMult = append(p.stepMult, int(*mult))
 	}
 	p.StepMIDI = make([]partStep, totalSteps)
 
@@ -69,13 +64,14 @@ func (p *Part) parseMIDI() (err error) {
 	reNote := regexp.MustCompile(reNote)
 	reChord := regexp.MustCompile(reChord)
 
-	var stepDataExpanded []string
+	var stepsMult []step
 	p.offMessages = map[int][]midi.Message{}
 
-	// parse notes
-	for i, sd := range p.stepData {
-		stepDataExpanded = append(stepDataExpanded, sd)
-		for _, msgs := range reNote.FindAllStringSubmatch(sd, -1) {
+	for i, sd := range p.steps {
+		stepsMult = append(stepsMult, sd)
+
+		// parse notes
+		for _, msgs := range reNote.FindAllStringSubmatch(string(sd), -1) {
 			note, err := music.Note(msgs[1], msgs[2])
 			if err != nil {
 				return err
@@ -98,7 +94,7 @@ func (p *Part) parseMIDI() (err error) {
 		}
 
 		// parse chords
-		for _, msgs := range reChord.FindAllStringSubmatch(sd, -1) {
+		for _, msgs := range reChord.FindAllStringSubmatch(string(sd), -1) {
 			beats := int64(0)
 			if msgs[3] != "" {
 				beats, err = strconv.ParseInt(msgs[3], 10, 64)
@@ -122,11 +118,11 @@ func (p *Part) parseMIDI() (err error) {
 
 		for range p.stepMult[i] - 1 {
 			p.StepMIDI[stepIdx] = p.StepMIDI[stepIdx-1]
-			stepDataExpanded = append(stepDataExpanded, "")
+			stepsMult = append(stepsMult, "")
 			stepIdx++
 		}
 	}
-	p.stepData = stepDataExpanded
+	p.steps = stepsMult
 	return nil
 }
 
@@ -156,12 +152,12 @@ func (p *Part) Title() (s string) {
 
 func (p *Part) Steps() (s string) {
 	var steps []string
-	for i, step := range p.stepData {
+	for i, step := range p.steps {
 		current := " "
 		if p.currentStep != nil && *p.currentStep == i {
 			current = ">"
 		}
-		steps = append(steps, fmt.Sprintf("%s %*d  %s", current, len(strconv.Itoa(len(p.stepData))), i+1, step))
+		steps = append(steps, fmt.Sprintf("%s %*d  %s", current, len(strconv.Itoa(len(p.steps))), i+1, step))
 	}
 	s += strings.Join(steps, "\n")
 	return

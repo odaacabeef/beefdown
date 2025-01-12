@@ -55,7 +55,9 @@ func (s *Sequence) parse() error {
 
 			p := Part{
 				metadata: metadata(m),
-				stepData: lines[1:],
+			}
+			for _, l := range lines[1:] {
+				p.steps = append(p.steps, step(l))
 			}
 
 			err = p.parseMetadata()
@@ -75,7 +77,9 @@ func (s *Sequence) parse() error {
 
 			a := Arrangement{
 				metadata: metadata(m),
-				stepData: lines[1:],
+			}
+			for _, l := range lines[1:] {
+				a.steps = append(a.steps, step(l))
 			}
 
 			a.parseMetadata()

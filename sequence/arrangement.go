@@ -2,7 +2,6 @@ package sequence
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -12,8 +11,8 @@ type Arrangement struct {
 	name     string
 	group    string
 
-	stepData []string
-	Parts    [][]*Part
+	steps []step
+	Parts [][]*Part
 
 	currentStep *int
 
@@ -29,26 +28,13 @@ func (a *Arrangement) parseParts(s Sequence) (err error) {
 
 	stepIdx := 0
 
-	var stepDataExpanded []string
+	var stepsMult []step
 
-	for _, sd := range a.stepData {
-		stepDataExpanded = append(stepDataExpanded, sd)
+	for _, sd := range a.steps {
+
 		a.Parts = append(a.Parts, []*Part{})
-		reMult := regexp.MustCompile(reMult)
-		match := reMult.FindStringSubmatch(sd)
-		var mult int64 = 1
-		if len(match) > 0 {
-			mult, err = strconv.ParseInt(match[1], 10, 64)
-			if err != nil {
-				return err
-			}
-		}
-
 	matchPlayable:
-		for _, name := range strings.Fields(sd) {
-			if !regexp.MustCompile("^" + reName).MatchString(name) {
-				continue
-			}
+		for _, name := range sd.names() {
 			for _, p := range s.Parts {
 				if p.name == name {
 					a.Parts[stepIdx] = append(a.Parts[stepIdx], p)
@@ -59,13 +45,18 @@ func (a *Arrangement) parseParts(s Sequence) (err error) {
 		}
 		stepIdx++
 
-		for range mult - 1 {
+		stepsMult = append(stepsMult, sd)
+		mult, err := sd.mult()
+		if err != nil {
+			return err
+		}
+		for range *mult - 1 {
 			a.Parts = append(a.Parts, a.Parts[stepIdx-1])
-			stepDataExpanded = append(stepDataExpanded, "")
+			stepsMult = append(stepsMult, "")
 			stepIdx++
 		}
 	}
-	a.stepData = stepDataExpanded
+	a.steps = stepsMult
 	return nil
 }
 
@@ -106,12 +97,12 @@ func (a *Arrangement) Title() (s string) {
 
 func (a *Arrangement) Steps() (s string) {
 	var steps []string
-	for i, step := range a.stepData {
+	for i, step := range a.steps {
 		current := " "
 		if a.currentStep != nil && *a.currentStep == i {
 			current = ">"
 		}
-		steps = append(steps, fmt.Sprintf("%s %*d  %s", current, len(strconv.Itoa(len(a.stepData))), i+1, step))
+		steps = append(steps, fmt.Sprintf("%s %*d  %s", current, len(strconv.Itoa(len(a.steps))), i+1, step))
 	}
 	s += strings.Join(steps, "\n")
 	return
