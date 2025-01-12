@@ -116,18 +116,14 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 	d.beat = time.Duration(float64(time.Minute) / d.bpm)
 	d.ticker = time.NewTicker(d.beat / 24.0)
 
-	defer d.ticker.Stop()
-	defer d.state.stop()
-	defer d.silence()
-
-	clockIdx := 0
 	defer func() {
-		// stop message
+		d.ticker.Stop()
+		d.state.stop()
 		d.stopCh <- struct{}{}
-		// stop followers
 		if d.sync == "leader" {
 			d.send(midi.Stop())
 		}
+		d.silence()
 	}()
 
 	d.state.play()
@@ -135,6 +131,8 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 	if d.sync == "leader" {
 		d.send(midi.Start())
 	}
+
+	clockIdx := 0
 
 	for {
 		for aidx, stepParts := range a.Parts {
