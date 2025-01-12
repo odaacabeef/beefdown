@@ -23,6 +23,8 @@ type Device struct {
 
 	ticker *time.Ticker
 
+	playCh chan struct{}
+	stopCh chan struct{}
 	clock  chan int
 	errors chan error
 
@@ -43,6 +45,8 @@ func New() (*Device, error) {
 	return &Device{
 		sendF:  send,
 		state:  newState(),
+		playCh: make(chan struct{}),
+		stopCh: make(chan struct{}),
 		clock:  make(chan int),
 		errors: make(chan error),
 	}, nil
@@ -53,6 +57,14 @@ func (d *Device) send(mm midi.Message) {
 	if err != nil {
 		d.errors <- err
 	}
+}
+
+func (d *Device) PlayCh() chan struct{} {
+	return d.playCh
+}
+
+func (d *Device) StopCh() chan struct{} {
+	return d.stopCh
 }
 
 func (d *Device) Clock() chan int {
@@ -110,8 +122,8 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 
 	clockIdx := 0
 	defer func() {
-		// final message
-		d.clock <- clockIdx
+		// stop message
+		d.stopCh <- struct{}{}
 		// stop followers
 		if d.sync == "leader" {
 			d.send(midi.Stop())
@@ -160,11 +172,14 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 						case <-stepDone:
 							return
 						case <-d.ticker.C:
+							if clockIdx == 0 {
+								d.playCh <- struct{}{}
+							}
 							if d.sync == "leader" {
-								d.send(midi.TimingClock())
 								if clockIdx == 0 {
 									d.send(midi.Start())
 								}
+								d.send(midi.TimingClock())
 							}
 							for i, t := range tick {
 								if clockIdx%stepParts[i].Div() == 0 && stepCounts[i] < len(stepParts[i].StepMIDI) {

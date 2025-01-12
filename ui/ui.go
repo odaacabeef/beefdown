@@ -86,6 +86,22 @@ groupPlayables:
 	return nil
 }
 
+type devicePlay struct{}
+
+func listenForDevicePlay(c chan struct{}) tea.Cmd {
+	return func() tea.Msg {
+		return devicePlay(<-c)
+	}
+}
+
+type deviceStop struct{}
+
+func listenForDeviceStop(c chan struct{}) tea.Cmd {
+	return func() tea.Msg {
+		return deviceStop(<-c)
+	}
+}
+
 type deviceTick int
 
 func listenForDeviceTick(c chan int) tea.Cmd {
@@ -103,17 +119,24 @@ func listenForDeviceErrors(err chan error) tea.Cmd {
 }
 
 func (m model) Init() tea.Cmd {
-	return listenForDeviceErrors(m.device.Errors())
+	return tea.Batch(
+		listenForDevicePlay(m.device.PlayCh()),
+		listenForDeviceErrors(m.device.Errors()),
+	)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
+	case devicePlay:
+		return m, listenForDeviceStop(m.device.StopCh())
+
+	case deviceStop:
+		m.playing = nil
+		return m, listenForDevicePlay(m.device.PlayCh())
+
 	case deviceTick:
-		switch {
-		case m.device.Stopped():
-			m.playing = nil
-		case m.device.Playing():
+		if m.device.Playing() {
 			return m, listenForDeviceTick(m.device.Clock())
 		}
 
