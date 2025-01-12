@@ -103,7 +103,7 @@ func listenForDeviceErrors(err chan error) tea.Cmd {
 }
 
 func (m model) Init() tea.Cmd {
-	return listenForDeviceErrors(m.device.Errors)
+	return listenForDeviceErrors(m.device.Errors())
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -119,7 +119,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case deviceError:
 		m.errs = append(m.errs, msg)
-		return m, listenForDeviceErrors(m.device.Errors)
+		return m, listenForDeviceErrors(m.device.Errors())
 
 	case tea.KeyMsg:
 

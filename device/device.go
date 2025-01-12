@@ -24,7 +24,7 @@ type Device struct {
 	ticker *time.Ticker
 
 	clock  chan int
-	Errors chan error
+	errors chan error
 
 	sendF func(midi.Message) error
 }
@@ -44,19 +44,23 @@ func New() (*Device, error) {
 		sendF:  send,
 		state:  newState(),
 		clock:  make(chan int),
-		Errors: make(chan error),
+		errors: make(chan error),
 	}, nil
 }
 
 func (d *Device) send(mm midi.Message) {
 	err := d.sendF(mm)
 	if err != nil {
-		d.Errors <- err
+		d.errors <- err
 	}
 }
 
 func (d *Device) Clock() chan int {
 	return d.clock
+}
+
+func (d *Device) Errors() chan error {
+	return d.errors
 }
 
 func (d *Device) State() string {
