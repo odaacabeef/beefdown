@@ -144,12 +144,12 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 				return
 			default:
 				var wg sync.WaitGroup
-				var tick []chan bool
-				stepDone := make(chan bool)
+				var tick []chan struct{}
+				stepDone := make(chan struct{})
 				for pidx, p := range stepParts {
 					wg.Add(1)
-					tick = append(tick, make(chan bool))
-					go func(t chan bool) {
+					tick = append(tick, make(chan struct{}))
+					go func(t chan struct{}) {
 						defer wg.Done()
 						for sidx, sm := range p.StepMIDI {
 							select {
@@ -181,7 +181,7 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 							}
 							for i, t := range tick {
 								if clockIdx%stepParts[i].Div() == 0 && stepCounts[i] < len(stepParts[i].StepMIDI) {
-									t <- true
+									t <- struct{}{}
 									stepCounts[i]++
 								}
 							}
@@ -191,7 +191,7 @@ func (d *Device) playArrangement(ctx context.Context, a *sequence.Arrangement) {
 					}
 				}()
 				wg.Wait()
-				stepDone <- true
+				stepDone <- struct{}{}
 			}
 		}
 		if !d.loop {
