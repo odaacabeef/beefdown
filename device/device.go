@@ -176,7 +176,7 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, nes
 				var tick []chan struct{}
 				stepDone := make(chan struct{})
 				var stepParts []*sequence.Part
-				for pidx, p := range stepPlayables {
+				for _, p := range stepPlayables {
 					wg.Add(1)
 					switch p.(type) {
 					case *sequence.Part:
@@ -198,7 +198,7 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, nes
 									}
 								}
 							}
-						}(p.(*sequence.Part), tick[pidx])
+						}(p.(*sequence.Part), tick[len(tick)-1])
 					case *sequence.Arrangement:
 						go func() {
 							defer wg.Done()
