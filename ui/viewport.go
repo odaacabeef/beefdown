@@ -25,6 +25,7 @@ func (v *viewport) view(header string, groups []string, selected coordinates) st
 	}
 
 	body := strings.Join(groups, "")
+	lines := strings.Split(body, "\n")
 
 	// vertical space remaining for playables
 	bodyHeight := v.height - lipgloss.Height(header)
@@ -39,14 +40,21 @@ func (v *viewport) view(header string, groups []string, selected coordinates) st
 	lastLine := bodyHeight + v.startAt
 
 	switch {
-	case selectedHeight > lastLine:
+	case selectedHeight >= lastLine:
+		// downward navigation
 		v.startAt = selectedHeight - bodyHeight
 	case v.startAt > selectedStart:
+		// upward navigation
 		v.startAt = selectedStart
+	case lastLine > len(lines):
+		// sequence reloaded and has fewer lines
+		v.startAt = len(lines) - bodyHeight
 	}
 
+	lastLine = bodyHeight + v.startAt
+
 	if lipgloss.Height(body) > bodyHeight {
-		body = strings.Join(strings.Split(body, "\n")[v.startAt:bodyHeight+v.startAt], "\n")
+		body = strings.Join(lines[v.startAt:lastLine], "\n")
 	}
 
 	return header + body
