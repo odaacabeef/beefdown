@@ -24,6 +24,8 @@ type model struct {
 	selected coordinates
 	playing  *coordinates
 
+	viewport viewport
+
 	stop context.CancelFunc
 
 	errs []error
@@ -143,6 +145,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case deviceError:
 		m.errs = append(m.errs, msg)
 		return m, listenForDeviceErrors(m.device.ErrorsCh())
+
+	case tea.WindowSizeMsg:
+		m.viewport.dim(msg.Width, msg.Height)
 
 	case tea.KeyMsg:
 
