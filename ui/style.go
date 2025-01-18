@@ -4,13 +4,13 @@ import "github.com/charmbracelet/lipgloss"
 
 type style lipgloss.Style
 
-func (s style) state() lipgloss.Style {
+func (s style) sequence() lipgloss.Style {
 	return lipgloss.NewStyle().
 		Padding(0, 1).
 		Margin(1)
 }
 
-func (s style) sequence() lipgloss.Style {
+func (s style) state() lipgloss.Style {
 	return lipgloss.NewStyle().
 		Padding(0, 1).
 		Margin(1)
@@ -27,6 +27,11 @@ func (s style) errors() lipgloss.Style {
 func (s style) warnings() lipgloss.Style {
 	return s.errors().
 		Foreground(lipgloss.Color("11"))
+}
+
+func (s style) header(width int) lipgloss.Style {
+	return lipgloss.NewStyle().
+		Width(width)
 }
 
 func (s style) playable(selected, playing bool) lipgloss.Style {

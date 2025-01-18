@@ -24,7 +24,7 @@ type model struct {
 	selected coordinates
 	playing  *coordinates
 
-	viewport viewport
+	viewport *viewport
 
 	stop context.CancelFunc
 
@@ -54,7 +54,8 @@ func initialModel(sequencePath string) (*model, error) {
 	}
 
 	m := model{
-		device: d,
+		device:   d,
+		viewport: &viewport{},
 	}
 
 	err = m.loadSequence(sequencePath)
@@ -232,13 +233,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 
+	var header string
+	var groups []string
+
 	st := style(lipgloss.NewStyle())
 
-	s := ""
-
-	s += st.sequence().Render(fmt.Sprintf("%s; bpm: %f; loop: %v; sync: %s", m.sequence.Path, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync))
-
-	s += st.state().Render(fmt.Sprintf("state: %s", m.device.State()))
+	header = st.sequence().Render(fmt.Sprintf("%s; bpm: %f; loop: %v; sync: %s", m.sequence.Path, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync))
+	header += st.state().Render(fmt.Sprintf("state: %s", m.device.State()))
 
 	if len(m.errs) > 0 {
 		var errstr []string
@@ -247,12 +248,14 @@ func (m model) View() string {
 		}
 		errstr = append(errstr, fmt.Sprintf("%d errors:", len(m.errs)))
 		slices.Reverse(errstr)
-		s += st.errors().Render(strings.Join(errstr, "\n"))
+		header += st.errors().Render(strings.Join(errstr, "\n"))
 	}
 	w := m.sequence.Warnings()
 	if len(w) > 0 {
-		s += st.warnings().Render(strings.Join(w, "\n"))
+		header += st.warnings().Render(strings.Join(w, "\n"))
 	}
+
+	header = st.header(m.viewport.width).Render(header)
 
 	for gIdx, g := range m.groupNames {
 		var sb strings.Builder
@@ -278,8 +281,8 @@ func (m model) View() string {
 				m.playing != nil && pIdx == m.playing.x && gIdx == m.playing.y,
 			).Render(p.Title()+steps))
 		}
-		s += lipgloss.JoinHorizontal(lipgloss.Top, append([]string{st.groupName().Render(sb.String())}, playables...)...)
+		groups = append(groups, lipgloss.JoinHorizontal(lipgloss.Top, append([]string{st.groupName().Render(sb.String())}, playables...)...))
 	}
 
-	return s
+	return m.viewport.view(header, groups, m.selected)
 }
