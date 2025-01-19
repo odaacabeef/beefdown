@@ -98,12 +98,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					p.ClearStep()
 				}
 				p := m.groups[m.groupNames[m.selected.y]][m.selected.x]
-				m.playing = &m.selected
+				playing := m.selected
+				m.playing = &playing
 				ctx, stop := context.WithCancel(context.Background())
 				m.stop = stop
 				m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
 				return m, listenForDeviceClock(m.device.ClockCh())
-
 			case m.device.Playing():
 				m.stop()
 			}
