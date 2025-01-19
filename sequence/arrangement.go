@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Arrangement struct {
@@ -97,16 +98,31 @@ partsOnly:
 	}
 }
 
-func (a *Arrangement) Name() (s string) {
+func (a *Arrangement) duration(bpm float64) time.Duration {
+	var d time.Duration
+	for _, stepPlayables := range a.Playables {
+		var longest time.Duration
+		for _, playable := range stepPlayables {
+			pd := playable.duration(bpm)
+			if pd > longest {
+				longest = pd
+			}
+		}
+		d += longest
+	}
+	return d
+}
+
+func (a *Arrangement) Name() string {
 	return a.name
 }
 
-func (a *Arrangement) Group() (s string) {
+func (a *Arrangement) Group() string {
 	return a.group
 }
 
-func (a *Arrangement) Title() (s string) {
-	return fmt.Sprintf("%s\n\n", a.name)
+func (a *Arrangement) Title(bpm float64) string {
+	return fmt.Sprintf("%s (%s)\n\n", a.name, a.duration(bpm))
 }
 
 func (a *Arrangement) Steps() (s string) {

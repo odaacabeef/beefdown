@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/odaacabeef/beefdown/music"
 
@@ -126,6 +127,12 @@ func (p *Part) parseMIDI() (err error) {
 	return nil
 }
 
+func (p *Part) duration(bpm float64) time.Duration {
+	beatDuration := time.Duration(float64(time.Minute) / bpm)
+	beatCount := len(p.steps) / (24.0 / p.div)
+	return beatDuration * time.Duration(beatCount)
+}
+
 func (p *Part) Arrangement() *Arrangement {
 	a := Arrangement{
 		Playables: [][]Playable{
@@ -150,8 +157,8 @@ func (p *Part) Div() int {
 	return p.div
 }
 
-func (p *Part) Title() (s string) {
-	return fmt.Sprintf("%s (ch:%d)\n\n", p.name, p.channel)
+func (p *Part) Title(bpm float64) string {
+	return fmt.Sprintf("%s (ch:%d) (%s)\n\n", p.name, p.channel, p.duration(bpm))
 }
 
 func (p *Part) Steps() (s string) {
