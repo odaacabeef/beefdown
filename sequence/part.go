@@ -25,6 +25,8 @@ type Part struct {
 
 	currentStep *int
 
+	duration time.Duration
+
 	offMessages map[int][]midi.Message
 
 	warnings []string
@@ -127,10 +129,14 @@ func (p *Part) parseMIDI() (err error) {
 	return nil
 }
 
-func (p *Part) duration(bpm float64) time.Duration {
+func (p *Part) calcDuration(bpm float64) {
 	beatDuration := time.Duration(float64(time.Minute) / bpm)
 	beatCount := len(p.steps) / (24.0 / p.div)
-	return beatDuration * time.Duration(beatCount)
+	p.duration = beatDuration * time.Duration(beatCount)
+}
+
+func (p *Part) Duration() time.Duration {
+	return p.duration
 }
 
 func (p *Part) Arrangement() *Arrangement {
@@ -157,8 +163,8 @@ func (p *Part) Div() int {
 	return p.div
 }
 
-func (p *Part) Title(bpm float64) string {
-	return fmt.Sprintf("%s (ch:%d) (%s)\n\n", p.name, p.channel, p.duration(bpm))
+func (p *Part) Title() string {
+	return fmt.Sprintf("%s (ch:%d) (%s)\n\n", p.name, p.channel, p.duration)
 }
 
 func (p *Part) Steps() (s string) {

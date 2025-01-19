@@ -17,6 +17,8 @@ type Arrangement struct {
 
 	currentStep *int
 
+	duration time.Duration
+
 	warnings []string
 }
 
@@ -98,19 +100,23 @@ partsOnly:
 	}
 }
 
-func (a *Arrangement) duration(bpm float64) time.Duration {
+func (a *Arrangement) calcDuration(bpm float64) {
 	var d time.Duration
 	for _, stepPlayables := range a.Playables {
 		var longest time.Duration
 		for _, playable := range stepPlayables {
-			pd := playable.duration(bpm)
+			pd := playable.Duration()
 			if pd > longest {
 				longest = pd
 			}
 		}
 		d += longest
 	}
-	return d
+	a.duration = d
+}
+
+func (a *Arrangement) Duration() time.Duration {
+	return a.duration
 }
 
 func (a *Arrangement) Name() string {
@@ -121,8 +127,8 @@ func (a *Arrangement) Group() string {
 	return a.group
 }
 
-func (a *Arrangement) Title(bpm float64) string {
-	return fmt.Sprintf("%s (%s)\n\n", a.name, a.duration(bpm))
+func (a *Arrangement) Title() string {
+	return fmt.Sprintf("%s (%s)\n\n", a.name, a.duration)
 }
 
 func (a *Arrangement) Steps() (s string) {

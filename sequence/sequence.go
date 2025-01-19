@@ -96,6 +96,10 @@ func (s *Sequence) parse() error {
 		return err
 	}
 
+	for _, p := range s.Playable {
+		p.calcDuration(s.BPM)
+	}
+
 	return nil
 }
 

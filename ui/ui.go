@@ -279,7 +279,7 @@ func (m model) View() string {
 			playables = append(playables, st.playable(
 				pIdx == m.selected.x && gIdx == m.selected.y,
 				m.playing != nil && pIdx == m.playing.x && gIdx == m.playing.y,
-			).Render(p.Title(m.sequence.BPM)+steps))
+			).Render(p.Title()+steps))
 		}
 		groups = append(groups, lipgloss.JoinHorizontal(lipgloss.Top, append([]string{st.groupName().Render(sb.String())}, playables...)...))
 	}
