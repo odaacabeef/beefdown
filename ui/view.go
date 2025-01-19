@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -16,7 +17,12 @@ func (m model) View() string {
 	st := style(lipgloss.NewStyle())
 
 	header = st.sequence().Render(fmt.Sprintf("%s; bpm: %f; loop: %v; sync: %s", m.sequence.Path, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync))
-	header += st.state().Render(fmt.Sprintf("state: %s", m.device.State()))
+
+	t := ""
+	if m.playStart != nil {
+		t = fmt.Sprintf(" (%s)", time.Now().Sub(*m.playStart).Round(time.Second))
+	}
+	header += st.state().Render(fmt.Sprintf("state: %s%s", m.device.State(), t))
 
 	if len(m.errs) > 0 {
 		var errstr []string

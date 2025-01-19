@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"time"
 
 	"github.com/odaacabeef/beefdown/device"
 	"github.com/odaacabeef/beefdown/sequence"
@@ -23,6 +24,8 @@ type model struct {
 	viewport *viewport
 
 	stop context.CancelFunc
+
+	playStart *time.Time
 
 	errs []error
 }

@@ -2,18 +2,22 @@ package ui
 
 import (
 	"context"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case devicePlay:
+		now := time.Now()
+		m.playStart = &now
 		return m, listenForDeviceStop(m.device.StopCh())
 
 	case deviceStop:
 		m.playing = nil
+		m.playStart = nil
 		return m, listenForDevicePlay(m.device.PlayCh())
 
 	case deviceClock:
