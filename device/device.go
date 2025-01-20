@@ -144,7 +144,7 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			break
 		case <-d.ticker.C:
 			d.clockSub.pub()
 			d.clockCh <- struct{}{}
