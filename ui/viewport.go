@@ -30,6 +30,10 @@ func (v *viewport) view(header string, groups []string, selected coordinates) st
 	// vertical space remaining for playables
 	bodyHeight := v.height - lipgloss.Height(header)
 
+	if bodyHeight >= len(lines) {
+		return header + body
+	}
+
 	// the height necessary for the selected playable to be completely in view
 	selectedHeight := lipgloss.Height(strings.Join(groups[0:selected.y+1], ""))
 
@@ -47,7 +51,7 @@ func (v *viewport) view(header string, groups []string, selected coordinates) st
 		// upward navigation
 		v.startAt = selectedStart
 	case lastLine > len(lines):
-		// sequence reloaded and has fewer lines
+		// lines have been added (sequence changed & reloaded, new errors or warnings)
 		v.startAt = len(lines) - bodyHeight
 	}
 
