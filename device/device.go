@@ -138,8 +138,8 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 		d.send(midi.Start())
 	}
 
-	primaryDone := make(chan struct{})
-	go d.playRecursive(ctx, a, &primaryDone)
+	done := make(chan struct{})
+	go d.playRecursive(ctx, a, &done)
 
 	for {
 		select {
@@ -151,7 +151,7 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 			if d.sync == "leader" {
 				d.send(midi.TimingClock())
 			}
-		case <-primaryDone:
+		case <-done:
 			return
 		}
 	}
@@ -159,7 +159,7 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 
 // playRecursive can be called for a top-level (primary) arrangement or
 // recursively for arrangements nested within arrangements.
-func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, primaryDone *chan struct{}) {
+func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, done *chan struct{}) {
 
 	clockIdx := 0
 
@@ -168,10 +168,8 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, pri
 
 	defer d.clockSub.unsub(a.Name())
 
-	if primaryDone != nil {
-		defer func() {
-			*primaryDone <- struct{}{}
-		}()
+	if done != nil {
+		defer close(*done)
 	}
 
 	for {
@@ -235,10 +233,10 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, pri
 					}
 				}()
 				wg.Wait()
-				stepDone <- struct{}{}
+				close(stepDone)
 			}
 		}
-		if !d.loop || primaryDone == nil {
+		if !d.loop || done == nil {
 			break
 		}
 	}
