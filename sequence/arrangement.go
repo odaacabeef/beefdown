@@ -128,7 +128,7 @@ func (a *Arrangement) Group() string {
 }
 
 func (a *Arrangement) Title() string {
-	return fmt.Sprintf("%s (%s)\n\n", a.name, a.duration)
+	return fmt.Sprintf("%s (%s)\n\n", a.name, a.duration.Round(time.Second))
 }
 
 func (a *Arrangement) Steps() (s string) {

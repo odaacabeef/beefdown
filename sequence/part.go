@@ -164,7 +164,7 @@ func (p *Part) Div() int {
 }
 
 func (p *Part) Title() string {
-	return fmt.Sprintf("%s (ch:%d) (%s)\n\n", p.name, p.channel, p.duration)
+	return fmt.Sprintf("%s (ch:%d) (%s)\n\n", p.name, p.channel, p.duration.Round(time.Second))
 }
 
 func (p *Part) Steps() (s string) {
