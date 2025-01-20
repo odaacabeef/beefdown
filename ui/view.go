@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"runtime"
 	"slices"
 	"strings"
 	"time"
@@ -18,11 +19,11 @@ func (m model) View() string {
 
 	header = st.sequence().Render(fmt.Sprintf("%s; bpm: %f; loop: %v; sync: %s", m.sequence.Path, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync))
 
-	t := ""
+	t := "-"
 	if m.playStart != nil {
-		t = fmt.Sprintf(" (%s)", time.Now().Sub(*m.playStart).Round(time.Second))
+		t = fmt.Sprintf("%s", time.Now().Sub(*m.playStart).Round(time.Second))
 	}
-	header += st.state().Render(fmt.Sprintf("state: %s%s", m.device.State(), t))
+	header += st.state().Render(fmt.Sprintf("state: %s; goroutines: %d; time: %s", m.device.State(), runtime.NumGoroutine(), t))
 
 	if len(m.errs) > 0 {
 		var errstr []string
