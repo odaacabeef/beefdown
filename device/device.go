@@ -168,6 +168,12 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, pri
 
 	defer d.clockSub.unsub(a.Name())
 
+	if primaryDone != nil {
+		defer func() {
+			*primaryDone <- struct{}{}
+		}()
+	}
+
 	for {
 		for aidx, stepPlayables := range a.Playables {
 			a.UpdateStep(aidx)
@@ -235,8 +241,5 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, pri
 		if !d.loop || primaryDone == nil {
 			break
 		}
-	}
-	if primaryDone != nil {
-		*primaryDone <- struct{}{}
 	}
 }
