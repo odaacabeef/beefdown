@@ -123,6 +123,7 @@ func listenForDeviceErrors(err chan error) tea.Cmd {
 func (m model) Init() tea.Cmd {
 	return tea.Batch(
 		listenForDevicePlay(m.device.PlayCh()),
+		listenForDeviceClock(m.device.ClockCh()),
 		listenForDeviceErrors(m.device.ErrorsCh()),
 	)
 }

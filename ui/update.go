@@ -21,9 +21,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, listenForDevicePlay(m.device.PlayCh())
 
 	case deviceClock:
-		if m.device.Playing() {
-			return m, listenForDeviceClock(m.device.ClockCh())
-		}
+		return m, listenForDeviceClock(m.device.ClockCh())
 
 	case deviceError:
 		m.errs = append(m.errs, msg)
@@ -103,7 +101,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				ctx, stop := context.WithCancel(context.Background())
 				m.stop = stop
 				m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
-				return m, listenForDeviceClock(m.device.ClockCh())
 			case m.device.Playing():
 				m.stop()
 			}
