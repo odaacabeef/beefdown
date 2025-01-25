@@ -209,6 +209,8 @@ func (m model) View() string {
 		for pIdx, p := range m.groups[g] {
 			steps := p.Steps()
 			lines := strings.Split(steps, "\n")
+			// limit playables to 16 vertical steps
+			// wrap them horizontally
 			chunkSize := 16
 			if len(lines) > chunkSize {
 				var chunks []string
@@ -218,10 +220,9 @@ func (m model) View() string {
 				}
 				steps = lipgloss.JoinHorizontal(lipgloss.Top, append(chunks, strings.Join(lines, "\n"))...)
 			}
-			playables = append(playables, st.playable(
-				pIdx == m.selected.x && gIdx == m.selected.y,
-				m.playing != nil && pIdx == m.playing.x && gIdx == m.playing.y,
-			).Render(p.Title()+steps))
+			selected := pIdx == m.selected.x && gIdx == m.selected.y
+			playing := m.playing != nil && pIdx == m.playing.x && gIdx == m.playing.y
+			playables = append(playables, st.playable(selected, playing).Render(p.Title()+steps))
 		}
 		groups = append(groups, lipgloss.JoinHorizontal(lipgloss.Top, append([]string{st.groupName().Render(sb.String())}, playables...)...))
 	}
