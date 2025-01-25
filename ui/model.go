@@ -171,7 +171,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 
 	var header string
-	var groups []string
+	var groupNames []string
+	var groupX []int
+	var groupPlayables [][]string
 
 	st := style(lipgloss.NewStyle())
 
@@ -199,14 +201,9 @@ func (m model) View() string {
 
 	header = st.header(m.viewport.width).Render(header)
 
-	for gIdx, g := range m.groupNames {
-		var sb strings.Builder
-		for _, char := range g {
-			sb.WriteRune(char)
-			sb.WriteString("\n")
-		}
+	for gIdx, groupName := range m.groupNames {
 		var playables []string
-		for pIdx, p := range m.groups[g] {
+		for pIdx, p := range m.groups[groupName] {
 			steps := p.Steps()
 			lines := strings.Split(steps, "\n")
 			// limit playables to 16 vertical steps
@@ -224,8 +221,11 @@ func (m model) View() string {
 			playing := m.playing != nil && pIdx == m.playing.x && gIdx == m.playing.y
 			playables = append(playables, st.playable(selected, playing).Render(p.Title()+steps))
 		}
-		groups = append(groups, lipgloss.JoinHorizontal(lipgloss.Top, append([]string{st.groupName().Render(sb.String())}, playables...)...))
+		// group name displayed vertically
+		groupNames = append(groupNames, st.groupName().Render(strings.Join(strings.Split(groupName, ""), "\n")))
+		groupX = append(groupX, m.groupX[groupName])
+		groupPlayables = append(groupPlayables, playables)
 	}
 
-	return m.viewport.view(header, groups, m.selected)
+	return m.viewport.view(header, groupNames, groupX, groupPlayables, m.selected)
 }
