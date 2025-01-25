@@ -7,9 +7,8 @@ import (
 )
 
 type viewport struct {
-	width  int
-	height int
-
+	width,
+	height,
 	startAt int
 }
 
