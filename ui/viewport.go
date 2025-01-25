@@ -13,6 +13,10 @@ type viewport struct {
 	startAt int
 }
 
+type coordinates struct {
+	x, y int
+}
+
 func (v *viewport) dim(w, h int) {
 	v.width = w
 	v.height = h
