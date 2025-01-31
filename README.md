@@ -107,8 +107,9 @@ gb1
 ```
 ````
 
-You can change the length of each beat with `div`. Recognized values are `8th`,
-`8th-triplet`, `16th`, and `32nd`.
+You can change the length of each beat with `div`. Recognized values are `4th`,
+`4th-triplet`, `8th`, `8th-triplet`, `16th`, and `32nd`. See
+[docs/division.md](docs/division.md) for more details on this.
 
 ````
 ```beef.part name:hh-2 group:drums ch:16 div:8th
