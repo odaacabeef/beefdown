@@ -17,5 +17,5 @@ const (
 	reBPM      = `([0-9]+\.?[0-9]+?)`
 	reLoop     = `(true|false)`
 	reSync     = `(leader)`
-	reDivision = `(8th-triplet|8th|16th|32nd)`
+	reDivision = `((4th|8th)-triplet|8th|16th|32nd)`
 )

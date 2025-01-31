@@ -82,6 +82,8 @@ func (m metadata) div() int {
 	match := re.FindStringSubmatch(string(m))
 	if len(match) > 0 {
 		switch match[1] {
+		case "4th-triplet":
+			return 16
 		case "8th":
 			return 12
 		case "8th-triplet":
