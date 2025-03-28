@@ -1,10 +1,12 @@
 package device
 
-type state string
+import "sync/atomic"
+
+type state uint32
 
 const (
-	playing = "playing"
-	stopped = "stopped"
+	playing state = 1
+	stopped state = 0
 )
 
 func newState() state {
@@ -12,17 +14,27 @@ func newState() state {
 }
 
 func (s *state) play() {
-	*s = playing
+	atomic.StoreUint32((*uint32)(s), uint32(playing))
 }
 
 func (s *state) stop() {
-	*s = stopped
+	atomic.StoreUint32((*uint32)(s), uint32(stopped))
 }
 
 func (s state) playing() bool {
-	return s == playing
+	return atomic.LoadUint32((*uint32)(&s)) == uint32(playing)
 }
 
 func (s state) stopped() bool {
-	return s == stopped
+	return atomic.LoadUint32((*uint32)(&s)) == uint32(stopped)
+}
+
+func (s state) string() string {
+	switch atomic.LoadUint32((*uint32)(&s)) {
+	case uint32(playing):
+		return "playing"
+	case uint32(stopped):
+		return "stopped"
+	}
+	return ""
 }

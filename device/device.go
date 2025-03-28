@@ -3,6 +3,7 @@ package device
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/odaacabeef/beefdown/sequence"
@@ -34,7 +35,6 @@ type Device struct {
 }
 
 func New() (*Device, error) {
-
 	out, err := drivers.Get().(*rtmididrv.Driver).OpenVirtualOut(deviceName)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func New() (*Device, error) {
 		playCh:   make(chan struct{}),
 		stopCh:   make(chan struct{}),
 		clockCh:  make(chan struct{}),
-		errorsCh: make(chan error),
+		errorsCh: make(chan error, 100),
 		clockSub: sub{
 			ch: make(map[string]chan struct{}),
 		},
@@ -60,7 +60,12 @@ func New() (*Device, error) {
 func (d *Device) send(mm midi.Message) {
 	err := d.sendF(mm)
 	if err != nil {
-		d.errorsCh <- err
+		select {
+		case d.errorsCh <- err:
+			// Error sent successfully
+		default:
+			// Channel is full, drop the error
+		}
 	}
 }
 
@@ -81,7 +86,7 @@ func (d *Device) ErrorsCh() chan error {
 }
 
 func (d *Device) State() string {
-	return string(d.state)
+	return d.state.string()
 }
 
 func (d *Device) Playing() bool {
@@ -160,8 +165,7 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 // playRecursive can be called for a top-level (primary) arrangement or
 // recursively for arrangements nested within arrangements.
 func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, done *chan struct{}) {
-
-	clockIdx := 0
+	var clockIdx int64
 
 	clockSub := make(chan struct{})
 	d.clockSub.sub(a.Name(), clockSub)
@@ -214,21 +218,26 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, don
 					}
 				}
 				go func() {
-					stepCounts := map[int]int{}
+					stepCounts := make([]int64, len(stepParts))
 					for {
 						select {
 						case <-ctx.Done():
-							break
+							return
 						case <-stepDone:
 							return
 						case <-clockSub:
 							for i, t := range tick {
-								if clockIdx%stepParts[i].Div() == 0 && stepCounts[i] < len(stepParts[i].StepMIDI) {
-									t <- struct{}{}
-									stepCounts[i]++
+								currentIdx := atomic.LoadInt64(&clockIdx)
+								if currentIdx%int64(stepParts[i].Div()) == 0 && atomic.LoadInt64(&stepCounts[i]) < int64(len(stepParts[i].StepMIDI)) {
+									select {
+									case t <- struct{}{}:
+										atomic.AddInt64(&stepCounts[i], 1)
+									default:
+										// Channel is full or closed, skip
+									}
 								}
 							}
-							clockIdx++
+							atomic.AddInt64(&clockIdx, 1)
 						}
 					}
 				}()

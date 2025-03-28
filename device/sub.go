@@ -4,7 +4,7 @@ import "sync"
 
 type sub struct {
 	ch map[string]chan struct{}
-	mu sync.Mutex
+	mu sync.RWMutex
 }
 
 func (s *sub) sub(name string, ch chan struct{}) {
@@ -20,9 +20,19 @@ func (s *sub) unsub(name string) {
 }
 
 func (s *sub) pub() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	channels := make([]chan struct{}, 0, len(s.ch))
 	for _, ch := range s.ch {
-		ch <- struct{}{}
+		channels = append(channels, ch)
+	}
+	s.mu.RUnlock()
+
+	for _, ch := range channels {
+		select {
+		case ch <- struct{}{}:
+			// Message sent successfully
+		default:
+			// Channel is full or closed, skip it
+		}
 	}
 }

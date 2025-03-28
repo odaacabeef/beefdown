@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -24,14 +25,17 @@ type model struct {
 
 	selected coordinates
 	playing  *coordinates
+	mu       sync.RWMutex // Mutex for protecting shared state
 
 	viewport *viewport
 
 	stop context.CancelFunc
 
 	playStart *time.Time
+	playMu    sync.RWMutex // Mutex for protecting playStart
 
 	errs []error
+	errMu sync.RWMutex // Mutex for protecting errs
 }
 
 func (m *model) loadSequence(sequencePath string) error {
@@ -70,19 +74,27 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case devicePlay:
 		now := time.Now()
+		m.playMu.Lock()
 		m.playStart = &now
+		m.playMu.Unlock()
 		return m, listenForDeviceStop(m.device.StopCh())
 
 	case deviceStop:
+		m.mu.Lock()
 		m.playing = nil
+		m.mu.Unlock()
+		m.playMu.Lock()
 		m.playStart = nil
+		m.playMu.Unlock()
 		return m, listenForDevicePlay(m.device.PlayCh())
 
 	case deviceClock:
 		return m, listenForDeviceClock(m.device.ClockCh())
 
 	case deviceError:
+		m.errMu.Lock()
 		m.errs = append(m.errs, msg)
+		m.errMu.Unlock()
 		return m, listenForDeviceErrors(m.device.ErrorsCh())
 
 	case tea.WindowSizeMsg:
@@ -104,48 +116,66 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			err := m.loadSequence(m.sequence.Path)
 			if err != nil {
+				m.errMu.Lock()
 				m.errs = append(m.errs, err)
+				m.errMu.Unlock()
 			}
 
 		case "h", "left":
+			m.mu.Lock()
 			if m.selected.x > 0 {
 				m.selected.x--
 				m.groupX[m.groupNames[m.selected.y]] = m.selected.x
 			}
+			m.mu.Unlock()
 
 		case "l", "right":
+			m.mu.Lock()
 			if m.selected.x < len(m.groups[m.groupNames[m.selected.y]])-1 {
 				m.selected.x++
 				m.groupX[m.groupNames[m.selected.y]] = m.selected.x
 			}
+			m.mu.Unlock()
 
 		case "k", "up":
+			m.mu.Lock()
 			if m.selected.y > 0 {
 				m.selected.y--
 				m.selected.x = m.groupX[m.groupNames[m.selected.y]]
 			}
+			m.mu.Unlock()
 
 		case "j", "down":
+			m.mu.Lock()
 			if m.selected.y < len(m.groupNames)-1 {
 				m.selected.y++
 				m.selected.x = m.groupX[m.groupNames[m.selected.y]]
 			}
+			m.mu.Unlock()
 
 		case "0":
+			m.mu.Lock()
 			m.selected.x = 0
 			m.groupX[m.groupNames[m.selected.y]] = m.selected.x
+			m.mu.Unlock()
 
 		case "$":
+			m.mu.Lock()
 			m.selected.x = len(m.groups[m.groupNames[m.selected.y]]) - 1
 			m.groupX[m.groupNames[m.selected.y]] = m.selected.x
+			m.mu.Unlock()
 
 		case "g":
+			m.mu.Lock()
 			m.selected.y = 0
 			m.selected.x = m.groupX[m.groupNames[m.selected.y]]
+			m.mu.Unlock()
 
 		case "G":
+			m.mu.Lock()
 			m.selected.y = len(m.groupNames) - 1
 			m.selected.x = m.groupX[m.groupNames[m.selected.y]]
+			m.mu.Unlock()
 
 		case " ":
 			switch {
@@ -153,9 +183,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				for _, p := range m.sequence.Playable {
 					p.ClearStep()
 				}
+				m.mu.Lock()
 				p := m.groups[m.groupNames[m.selected.y]][m.selected.x]
 				playing := m.selected
 				m.playing = &playing
+				m.mu.Unlock()
 				ctx, stop := context.WithCancel(context.Background())
 				m.stop = stop
 				m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
@@ -180,11 +212,14 @@ func (m model) View() string {
 	header = st.sequence().Render(fmt.Sprintf("%s; bpm: %f; loop: %v; sync: %s", m.sequence.Path, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync))
 
 	t := "-"
+	m.playMu.RLock()
 	if m.playStart != nil {
 		t = fmt.Sprintf("%s", time.Now().Sub(*m.playStart).Round(time.Second))
 	}
+	m.playMu.RUnlock()
 	header += st.state().Render(fmt.Sprintf("state: %s; goroutines: %d; time: %s", m.device.State(), runtime.NumGoroutine(), t))
 
+	m.errMu.RLock()
 	if len(m.errs) > 0 {
 		var errstr []string
 		for _, err := range m.errs {
@@ -194,6 +229,7 @@ func (m model) View() string {
 		slices.Reverse(errstr)
 		header += st.errors().Render(strings.Join(errstr, "\n"))
 	}
+	m.errMu.RUnlock()
 	w := m.sequence.Warnings()
 	if len(w) > 0 {
 		header += st.warnings().Render(strings.Join(w, "\n"))
