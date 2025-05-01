@@ -83,6 +83,12 @@ func tokenize(input string) []Token {
 			tokens = append(tokens, Token{Type: NUMBER, Literal: string(runes[start:i])})
 		case unicode.IsLetter(runes[i]):
 			start := i
+			// Validate first letter is a-g
+			firstLetter := strings.ToLower(string(runes[i]))
+			if firstLetter < "a" || firstLetter > "g" {
+				// Return a single ILLEGAL token to indicate error
+				return []Token{{Type: ILLEGAL, Literal: fmt.Sprintf("invalid note: %s", string(runes[i]))}}
+			}
 			// Handle note/chord name
 			for i < len(runes) && (unicode.IsLetter(runes[i]) || runes[i] == 'b' || runes[i] == '#') {
 				i++
@@ -105,6 +111,10 @@ func tokenize(input string) []Token {
 func (p *Parser) Parse() ([]Node, error) {
 	var nodes []Node
 	for !p.isAtEnd() {
+		token := p.peek()
+		if token.Type == ILLEGAL {
+			return nil, fmt.Errorf(token.Literal)
+		}
 		node, err := p.parseExpression()
 		if err != nil {
 			return nil, err
