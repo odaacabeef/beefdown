@@ -1,11 +1,11 @@
 module github.com/odaacabeef/beefdown
 
-go 1.23.2
+go 1.24.2
 
 require (
 	github.com/charmbracelet/bubbletea v1.2.4
 	github.com/charmbracelet/lipgloss v1.0.0
-	gitlab.com/gomidi/midi/v2 v2.2.19
+	gitlab.com/gomidi/midi/v2 v2.3.6
 )
 
 require (
