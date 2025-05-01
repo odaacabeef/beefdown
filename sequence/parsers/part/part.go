@@ -41,12 +41,12 @@ func (n *NoteNode) TokenLiteral() string {
 
 type ChordNode struct {
 	Root     string
-	Type     string
+	Quality  string
 	Duration int
 }
 
 func (c *ChordNode) TokenLiteral() string {
-	return fmt.Sprintf("%s%s", c.Root, c.Type)
+	return fmt.Sprintf("%s%s", c.Root, c.Quality)
 }
 
 // Parser represents the parser
@@ -113,7 +113,7 @@ func (p *Parser) Parse() ([]Node, error) {
 	for !p.isAtEnd() {
 		token := p.peek()
 		if token.Type == ILLEGAL {
-			return nil, fmt.Errorf(token.Literal)
+			return nil, fmt.Errorf("%s", token.Literal)
 		}
 		node, err := p.parseExpression()
 		if err != nil {
@@ -174,12 +174,12 @@ func (p *Parser) parseChord() (*ChordNode, error) {
 	chordToken := p.advance()
 	chord := chordToken.Literal
 
-	// Split root and type
+	// Split root and quality
 	root := strings.ToUpper(chord[:1])
 	if len(chord) > 1 && (chord[1] == 'b' || chord[1] == '#') {
 		root = chord[:2]
 	}
-	chordType := chord[len(root):]
+	quality := chord[len(root):]
 
 	duration := 0
 	if p.match(COLON) {
@@ -195,7 +195,7 @@ func (p *Parser) parseChord() (*ChordNode, error) {
 
 	return &ChordNode{
 		Root:     root,
-		Type:     chordType,
+		Quality:  quality,
 		Duration: duration,
 	}, nil
 }
