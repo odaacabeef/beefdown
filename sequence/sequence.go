@@ -9,10 +9,9 @@ import (
 type Sequence struct {
 	Path string
 
-	metadata sequenceMetadata
-	BPM      float64
-	Loop     bool
-	Sync     string
+	BPM  float64
+	Loop bool
+	Sync string
 
 	Parts        []*Part
 	Arrangements []*Arrangement
@@ -51,7 +50,10 @@ func (s *Sequence) parse() error {
 			if err != nil {
 				return err
 			}
-			s.metadata = meta
+
+			s.BPM = meta.BPM
+			s.Loop = meta.Loop
+			s.Sync = meta.Sync
 
 		case strings.HasPrefix(m, ".part"):
 			meta, err := newPartMetadata(m)
@@ -59,15 +61,13 @@ func (s *Sequence) parse() error {
 				return err
 			}
 			p := Part{
-				metadata: meta,
+				name:    meta.Name,
+				group:   meta.Group,
+				channel: meta.Channel,
+				div:     meta.Div,
 			}
 			for _, l := range lines[1:] {
 				p.steps = append(p.steps, step(l))
-			}
-
-			err = p.parseMetadata()
-			if err != nil {
-				return err
 			}
 
 			err = p.parseMIDI()
@@ -84,13 +84,13 @@ func (s *Sequence) parse() error {
 				return err
 			}
 			a := Arrangement{
-				metadata: meta,
+				name:  meta.Name,
+				group: meta.Group,
 			}
 			for _, l := range lines[1:] {
 				a.steps = append(a.steps, step(l))
 			}
 
-			a.parseMetadata()
 			a.parsePlayables(*s)
 			a.appendSyncParts()
 
@@ -99,22 +99,10 @@ func (s *Sequence) parse() error {
 		}
 	}
 
-	err = s.parseMetadata()
-	if err != nil {
-		return err
-	}
-
 	for _, p := range s.Playable {
 		p.calcDuration(s.BPM)
 	}
 
-	return nil
-}
-
-func (s *Sequence) parseMetadata() error {
-	s.BPM = s.metadata.BPM
-	s.Loop = s.metadata.Loop
-	s.Sync = s.metadata.Sync
 	return nil
 }
 

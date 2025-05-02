@@ -8,9 +8,8 @@ import (
 )
 
 type Arrangement struct {
-	metadata arrangementMetadata
-	name     string
-	group    string
+	name  string
+	group string
 
 	steps     []step
 	Playables [][]Playable
@@ -20,11 +19,6 @@ type Arrangement struct {
 	duration time.Duration
 
 	warnings []string
-}
-
-func (a *Arrangement) parseMetadata() {
-	a.name = a.metadata.Name
-	a.group = a.metadata.Group
 }
 
 func (a *Arrangement) parsePlayables(s Sequence) (err error) {

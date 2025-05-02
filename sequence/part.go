@@ -13,11 +13,10 @@ import (
 )
 
 type Part struct {
-	metadata partMetadata
-	name     string
-	group    string
-	channel  uint8
-	div      int
+	name    string
+	group   string
+	channel uint8
+	div     int
 
 	steps    []step
 	stepMult []int
@@ -35,14 +34,6 @@ type Part struct {
 type partStep struct {
 	On  []midi.Message
 	Off []midi.Message
-}
-
-func (p *Part) parseMetadata() error {
-	p.name = p.metadata.Name
-	p.group = p.metadata.Group
-	p.channel = p.metadata.Channel
-	p.div = p.metadata.Div
-	return nil
 }
 
 func (p *Part) parseMIDI() (err error) {
