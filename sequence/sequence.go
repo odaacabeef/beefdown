@@ -44,10 +44,8 @@ func (s *Sequence) parse() error {
 	for _, b := range re.FindAllStringSubmatch(string(md), -1) {
 		lines := strings.Split(b[1], "\n")
 
-		m := lines[0]
-
 		switch {
-		case strings.HasPrefix(m, ".sequence"):
+		case strings.HasPrefix(lines[0], ".sequence"):
 			meta, err := newSequenceMetadata(b[1])
 			if err != nil {
 				return err
@@ -57,8 +55,8 @@ func (s *Sequence) parse() error {
 			s.Loop = meta.Loop
 			s.Sync = meta.Sync
 
-		case strings.HasPrefix(m, ".part"):
-			meta, err := newPartMetadata(m)
+		case strings.HasPrefix(lines[0], ".part"):
+			meta, err := newPartMetadata(lines[0])
 			if err != nil {
 				return err
 			}
@@ -80,8 +78,8 @@ func (s *Sequence) parse() error {
 			s.Parts = append(s.Parts, &p)
 			s.Playable = append(s.Playable, &p)
 
-		case strings.HasPrefix(m, ".arrangement"):
-			meta, err := newArrangementMetadata(m)
+		case strings.HasPrefix(lines[0], ".arrangement"):
+			meta, err := newArrangementMetadata(lines[0])
 			if err != nil {
 				return err
 			}
