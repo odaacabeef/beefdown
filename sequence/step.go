@@ -9,7 +9,7 @@ import (
 type step string
 
 func (s *step) mult() (*int64, error) {
-	match := regexp.MustCompile(reMult).FindStringSubmatch(string(*s))
+	match := regexp.MustCompile(`\*([[:digit:]]+)`).FindStringSubmatch(string(*s))
 	var m int64 = 1
 	var err error
 	if len(match) > 0 {
