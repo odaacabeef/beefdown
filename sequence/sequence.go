@@ -96,6 +96,36 @@ func (s *Sequence) parse() error {
 
 			s.Arrangements = append(s.Arrangements, &a)
 			s.Playable = append(s.Playable, &a)
+
+		case strings.HasPrefix(lines[0], ".func.arpeggiate"):
+
+			meta, err := newFuncArpeggiateMetadata(b[1])
+
+			if err != nil {
+				return err
+			}
+
+			f := FuncArpeggiate{
+				Part: Part{
+					name:    meta.Name,
+					group:   meta.Group,
+					channel: meta.Channel,
+					div:     meta.Div,
+				},
+				Notes:  meta.Notes,
+				Length: meta.Length,
+			}
+
+			f.buildSteps()
+
+			err = f.parseMIDI()
+			if err != nil {
+				return err
+			}
+
+			s.Parts = append(s.Parts, &f.Part)
+			s.Playable = append(s.Playable, &f.Part)
+
 		}
 	}
 

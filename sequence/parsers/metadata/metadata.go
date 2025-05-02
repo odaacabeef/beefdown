@@ -42,6 +42,12 @@ type ArrangementMetadata struct {
 	Group string
 }
 
+type FuncArpeggiateMetadata struct {
+	PartMetadata
+	Notes  string
+	Length int
+}
+
 func (t TokenType) String() string {
 	switch t {
 	case ILLEGAL:
@@ -405,6 +411,73 @@ func ParseArrangementMetadata(raw string) (ArrangementMetadata, error) {
 	if groupNode, ok := node.Fields["group"]; ok {
 		if strNode, ok := groupNode.(*StringNode); ok {
 			m.Group = strNode.Value
+		}
+	}
+
+	return m, nil
+}
+
+func ParseFuncArpeggiateMetadata(raw string) (FuncArpeggiateMetadata, error) {
+	parser := NewParser(raw)
+	node, err := parser.Parse()
+	if err != nil {
+		return FuncArpeggiateMetadata{}, err
+	}
+
+	m := FuncArpeggiateMetadata{
+		PartMetadata: PartMetadata{
+			Name:    "default",
+			Group:   "default",
+			Channel: 1,
+			Div:     24,
+		},
+		Length: 1,
+	}
+
+	if nameNode, ok := node.Fields["name"]; ok {
+		if strNode, ok := nameNode.(*StringNode); ok {
+			m.Name = strNode.Value
+		}
+	}
+
+	if groupNode, ok := node.Fields["group"]; ok {
+		if strNode, ok := groupNode.(*StringNode); ok {
+			m.Group = strNode.Value
+		}
+	}
+
+	if chNode, ok := node.Fields["ch"]; ok {
+		if numNode, ok := chNode.(*NumberNode); ok {
+			m.Channel = uint8(numNode.Value)
+		}
+	}
+
+	if divNode, ok := node.Fields["div"]; ok {
+		if strNode, ok := divNode.(*StringNode); ok {
+			switch strNode.Value {
+			case "4th-triplet":
+				m.Div = 16
+			case "8th":
+				m.Div = 12
+			case "8th-triplet":
+				m.Div = 8
+			case "16th":
+				m.Div = 6
+			case "32nd":
+				m.Div = 3
+			}
+		}
+	}
+
+	if notesNode, ok := node.Fields["notes"]; ok {
+		if strNode, ok := notesNode.(*StringNode); ok {
+			m.Notes = strNode.Value
+		}
+	}
+
+	if lengthNode, ok := node.Fields["length"]; ok {
+		if numNode, ok := lengthNode.(*NumberNode); ok {
+			m.Length = int(numNode.Value)
 		}
 	}
 
