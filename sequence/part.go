@@ -2,12 +2,12 @@ package sequence
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/odaacabeef/beefdown/music"
+	partparser "github.com/odaacabeef/beefdown/sequence/parsers/part"
 
 	"gitlab.com/gomidi/midi/v2"
 )
@@ -50,7 +50,6 @@ func (p *Part) parseMetadata() error {
 }
 
 func (p *Part) parseMIDI() (err error) {
-
 	// determine length
 	totalSteps := len(p.steps)
 	for _, sd := range p.steps {
@@ -64,59 +63,50 @@ func (p *Part) parseMIDI() (err error) {
 	p.StepMIDI = make([]partStep, totalSteps)
 
 	stepIdx := 0
-	reNote := regexp.MustCompile(reNote)
-	reChord := regexp.MustCompile(reChord)
-
-	var stepsMult []step
 	p.offMessages = map[int][]midi.Message{}
 
+	var stepsMult []step
 	for i, sd := range p.steps {
 		stepsMult = append(stepsMult, sd)
 
-		// parse notes
-		for _, msgs := range reNote.FindAllStringSubmatch(string(sd), -1) {
-			note, err := music.Note(msgs[1], msgs[2])
-			if err != nil {
-				return err
-			}
-			beats := int64(0)
-			if msgs[3] != "" {
-				beats, err = strconv.ParseInt(msgs[3], 10, 64)
-				if err != nil {
-					return err
-				}
-			}
-			p.StepMIDI[stepIdx].On = append(p.StepMIDI[stepIdx].On, midi.NoteOn(p.channel-1, *note, 100))
-			if beats > 0 {
-				offIdx := stepIdx + int(beats)
-				endOfBeat := offIdx*p.Div() - 1
-				if endOfBeat <= len(p.StepMIDI)*p.Div() {
-					p.offMessages[endOfBeat] = append(p.offMessages[endOfBeat], midi.NoteOff(p.channel-1, *note))
-				}
-			}
+		// Parse the step using our AST parser
+		parser := partparser.NewParser(string(sd))
+		nodes, err := parser.Parse()
+		if err != nil {
+			return err
 		}
 
-		// parse chords
-		for _, msgs := range reChord.FindAllStringSubmatch(string(sd), -1) {
-			beats := int64(0)
-			if msgs[3] != "" {
-				beats, err = strconv.ParseInt(msgs[3], 10, 64)
+		// Process each node (note or chord)
+		for _, node := range nodes {
+			switch n := node.(type) {
+			case *partparser.NoteNode:
+				note, err := music.Note(n.Note, strconv.Itoa(n.Octave))
 				if err != nil {
 					return err
 				}
-			}
-
-			for _, note := range music.Chord(msgs[1], msgs[2]) {
-				p.StepMIDI[stepIdx].On = append(p.StepMIDI[stepIdx].On, midi.NoteOn(p.channel-1, note, 100))
-				if beats > 0 {
-					offIdx := stepIdx + int(beats)
+				p.StepMIDI[stepIdx].On = append(p.StepMIDI[stepIdx].On, midi.NoteOn(p.channel-1, *note, 100))
+				if n.Duration > 0 {
+					offIdx := stepIdx + n.Duration
 					endOfBeat := offIdx*p.Div() - 1
 					if endOfBeat <= len(p.StepMIDI)*p.Div() {
-						p.offMessages[endOfBeat] = append(p.offMessages[endOfBeat], midi.NoteOff(p.channel-1, note))
+						p.offMessages[endOfBeat] = append(p.offMessages[endOfBeat], midi.NoteOff(p.channel-1, *note))
+					}
+				}
+
+			case *partparser.ChordNode:
+				for _, note := range music.Chord(n.Root, n.Quality) {
+					p.StepMIDI[stepIdx].On = append(p.StepMIDI[stepIdx].On, midi.NoteOn(p.channel-1, note, 100))
+					if n.Duration > 0 {
+						offIdx := stepIdx + n.Duration
+						endOfBeat := offIdx*p.Div() - 1
+						if endOfBeat <= len(p.StepMIDI)*p.Div() {
+							p.offMessages[endOfBeat] = append(p.offMessages[endOfBeat], midi.NoteOff(p.channel-1, note))
+						}
 					}
 				}
 			}
 		}
+
 		stepIdx++
 
 		for range p.stepMult[i] - 1 {
