@@ -8,7 +8,7 @@ import (
 )
 
 type Arrangement struct {
-	metadata metadata
+	metadata arrangementMetadata
 	name     string
 	group    string
 
@@ -23,8 +23,8 @@ type Arrangement struct {
 }
 
 func (a *Arrangement) parseMetadata() {
-	a.name = a.metadata.name()
-	a.group = a.metadata.group()
+	a.name = a.metadata.Name
+	a.group = a.metadata.Group
 }
 
 func (a *Arrangement) parsePlayables(s Sequence) (err error) {

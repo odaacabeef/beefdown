@@ -9,7 +9,7 @@ import (
 type Sequence struct {
 	Path string
 
-	metadata metadata
+	metadata sequenceMetadata
 	BPM      float64
 	Loop     bool
 	Sync     string
@@ -21,7 +21,6 @@ type Sequence struct {
 }
 
 func New(p string) (*Sequence, error) {
-
 	s := Sequence{
 		Path: p,
 	}
@@ -35,7 +34,6 @@ func New(p string) (*Sequence, error) {
 }
 
 func (s *Sequence) parse() error {
-
 	md, err := os.ReadFile(s.Path)
 	if err != nil {
 		return err
@@ -49,12 +47,19 @@ func (s *Sequence) parse() error {
 
 		switch {
 		case strings.HasPrefix(m, ".sequence"):
-			s.metadata = metadata(b[1])
+			meta, err := newSequenceMetadata(b[1])
+			if err != nil {
+				return err
+			}
+			s.metadata = meta
 
 		case strings.HasPrefix(m, ".part"):
-
+			meta, err := newPartMetadata(m)
+			if err != nil {
+				return err
+			}
 			p := Part{
-				metadata: metadata(m),
+				metadata: meta,
 			}
 			for _, l := range lines[1:] {
 				p.steps = append(p.steps, step(l))
@@ -74,9 +79,12 @@ func (s *Sequence) parse() error {
 			s.Playable = append(s.Playable, &p)
 
 		case strings.HasPrefix(m, ".arrangement"):
-
+			meta, err := newArrangementMetadata(m)
+			if err != nil {
+				return err
+			}
 			a := Arrangement{
-				metadata: metadata(m),
+				metadata: meta,
 			}
 			for _, l := range lines[1:] {
 				a.steps = append(a.steps, step(l))
@@ -104,13 +112,9 @@ func (s *Sequence) parse() error {
 }
 
 func (s *Sequence) parseMetadata() error {
-	bpm, err := s.metadata.bpm()
-	if err != nil {
-		return err
-	}
-	s.BPM = bpm
-	s.Loop = s.metadata.loop()
-	s.Sync = s.metadata.sync()
+	s.BPM = s.metadata.BPM
+	s.Loop = s.metadata.Loop
+	s.Sync = s.metadata.Sync
 	return nil
 }
 
