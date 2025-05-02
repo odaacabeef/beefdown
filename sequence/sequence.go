@@ -38,6 +38,12 @@ func (s *Sequence) parse() error {
 		return err
 	}
 
+	// populate default sequence metadata
+	seqMeta, err := newSequenceMetadata("")
+	if err != nil {
+		return err
+	}
+
 	// match all beefdown code blocks
 	re := regexp.MustCompile("(?sm)^```beef(.*?)\n^```")
 
@@ -46,14 +52,10 @@ func (s *Sequence) parse() error {
 
 		switch {
 		case strings.HasPrefix(lines[0], ".sequence"):
-			meta, err := newSequenceMetadata(b[1])
+			seqMeta, err = newSequenceMetadata(b[1])
 			if err != nil {
 				return err
 			}
-
-			s.BPM = meta.BPM
-			s.Loop = meta.Loop
-			s.Sync = meta.Sync
 
 		case strings.HasPrefix(lines[0], ".part"):
 			meta, err := newPartMetadata(lines[0])
@@ -128,6 +130,10 @@ func (s *Sequence) parse() error {
 
 		}
 	}
+
+	s.BPM = seqMeta.BPM
+	s.Loop = seqMeta.Loop
+	s.Sync = seqMeta.Sync
 
 	for _, p := range s.Playable {
 		p.calcDuration(s.BPM)
