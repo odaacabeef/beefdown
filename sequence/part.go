@@ -13,7 +13,7 @@ import (
 )
 
 type Part struct {
-	metadata metadata
+	metadata partMetadata
 	name     string
 	group    string
 	channel  uint8
@@ -38,14 +38,10 @@ type partStep struct {
 }
 
 func (p *Part) parseMetadata() error {
-	p.name = p.metadata.name()
-	p.group = p.metadata.group()
-	ch, err := p.metadata.channel()
-	if err != nil {
-		return err
-	}
-	p.channel = ch
-	p.div = p.metadata.div()
+	p.name = p.metadata.Name
+	p.group = p.metadata.Group
+	p.channel = p.metadata.Channel
+	p.div = p.metadata.Div
 	return nil
 }
 
