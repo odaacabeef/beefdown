@@ -94,25 +94,6 @@ partsOnly:
 	}
 }
 
-func (a *Arrangement) calcDuration(bpm float64) {
-	var d time.Duration
-	for _, stepPlayables := range a.Playables {
-		var longest time.Duration
-		for _, playable := range stepPlayables {
-			pd := playable.Duration()
-			if pd > longest {
-				longest = pd
-			}
-		}
-		d += longest
-	}
-	a.duration = d
-}
-
-func (a *Arrangement) Duration() time.Duration {
-	return a.duration
-}
-
 func (a *Arrangement) Name() string {
 	return a.name
 }
@@ -152,4 +133,23 @@ func (a *Arrangement) ClearStep() {
 
 func (a *Arrangement) Warnings() []string {
 	return a.warnings
+}
+
+func (a *Arrangement) calcDuration(bpm float64) {
+	var d time.Duration
+	for _, stepPlayables := range a.Playables {
+		var longest time.Duration
+		for _, playable := range stepPlayables {
+			pd := playable.Duration()
+			if pd > longest {
+				longest = pd
+			}
+		}
+		d += longest
+	}
+	a.duration = d
+}
+
+func (a *Arrangement) Duration() time.Duration {
+	return a.duration
 }

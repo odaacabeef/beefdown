@@ -106,16 +106,6 @@ func (p *Part) parseMIDI() (err error) {
 	return nil
 }
 
-func (p *Part) calcDuration(bpm float64) {
-	beatDuration := time.Duration(float64(time.Minute) / bpm)
-	beatCount := len(p.steps) / (24.0 / p.div)
-	p.duration = beatDuration * time.Duration(beatCount)
-}
-
-func (p *Part) Duration() time.Duration {
-	return p.duration
-}
-
 func (p *Part) Arrangement() *Arrangement {
 	a := Arrangement{
 		Playables: [][]Playable{
@@ -128,16 +118,16 @@ func (p *Part) Arrangement() *Arrangement {
 	return &a
 }
 
+func (p *Part) Div() int {
+	return p.div
+}
+
 func (p *Part) Name() string {
 	return p.name
 }
 
 func (p *Part) Group() string {
 	return p.group
-}
-
-func (p *Part) Div() int {
-	return p.div
 }
 
 func (p *Part) Title() string {
@@ -171,4 +161,14 @@ func (p *Part) ClearStep() {
 
 func (p *Part) Warnings() []string {
 	return p.warnings
+}
+
+func (p *Part) calcDuration(bpm float64) {
+	beatDuration := time.Duration(float64(time.Minute) / bpm)
+	beatCount := len(p.steps) / (24.0 / p.div)
+	p.duration = beatDuration * time.Duration(beatCount)
+}
+
+func (p *Part) Duration() time.Duration {
+	return p.duration
 }
