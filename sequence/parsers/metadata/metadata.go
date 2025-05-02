@@ -184,17 +184,13 @@ func (p *Parser) Parse() (*MetadataNode, error) {
 		Fields: make(map[string]Node),
 	}
 
-	fmt.Printf("Starting parse with tokens: %v\n", p.tokens)
-
 	// Skip the first identifier token (e.g. ".sequence", ".part", ".arrangement")
 	if !p.isAtEnd() && p.peek().Type == IDENTIFIER {
-		fmt.Printf("Skipping first identifier: %v\n", p.peek())
 		p.advance()
 	}
 
 	// Skip any remaining whitespace
 	for !p.isAtEnd() && p.peek().Type == ILLEGAL {
-		fmt.Printf("Skipping illegal token: %v\n", p.peek())
 		p.advance()
 	}
 
@@ -203,14 +199,11 @@ func (p *Parser) Parse() (*MetadataNode, error) {
 			break
 		}
 
-		fmt.Printf("Current token: %v\n", p.peek())
-
 		// Parse key
 		if !p.match(IDENTIFIER) {
 			return nil, fmt.Errorf("expected identifier, got %s (type: %v)", p.peek().Literal, p.peek().Type)
 		}
 		key := p.previous().Literal
-		fmt.Printf("Parsed key: %s\n", key)
 
 		// Parse colon
 		if !p.match(COLON) {
