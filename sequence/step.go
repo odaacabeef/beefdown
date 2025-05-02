@@ -24,7 +24,7 @@ func (s *step) mult() (*int64, error) {
 func (s *step) names() []string {
 	var n []string
 	for _, f := range strings.Fields(string(*s)) {
-		if !regexp.MustCompile("^" + reName).MatchString(f) {
+		if !regexp.MustCompile(`^([0-9A-Za-z'_-]+)`).MatchString(f) {
 			continue
 		}
 		n = append(n, f)
