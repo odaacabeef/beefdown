@@ -34,7 +34,7 @@ type model struct {
 	playStart *time.Time
 	playMu    sync.RWMutex // Mutex for protecting playStart
 
-	errs []error
+	errs  []error
 	errMu sync.RWMutex // Mutex for protecting errs
 }
 
@@ -61,7 +61,7 @@ groupPlayables:
 	return nil
 }
 
-func (m model) Init() tea.Cmd {
+func (m *model) Init() tea.Cmd {
 	return tea.Batch(
 		listenForDevicePlay(m.device.PlayCh()),
 		listenForDeviceClock(m.device.ClockCh()),
@@ -200,7 +200,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) View() string {
+func (m *model) View() string {
 
 	var header string
 	var groupNames []string
