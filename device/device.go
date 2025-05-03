@@ -178,7 +178,12 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, don
 
 	for {
 		for aidx, stepPlayables := range a.Playables {
-			a.UpdateStep(aidx)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				a.UpdateStep(aidx)
+			}
 			select {
 			case <-ctx.Done():
 				return
