@@ -301,6 +301,67 @@ func (p *Parser) check(t TokenType) bool {
 	return p.peek().Type == t
 }
 
+// Common parsing utilities
+type fieldParser struct {
+	node *MetadataNode
+}
+
+func newFieldParser(node *MetadataNode) *fieldParser {
+	return &fieldParser{node: node}
+}
+
+func (fp *fieldParser) getString(key string, defaultValue string) string {
+	if node, ok := fp.node.Fields[key]; ok {
+		if strNode, ok := node.(*StringNode); ok {
+			return strNode.Value
+		}
+	}
+	return defaultValue
+}
+
+func (fp *fieldParser) getNumber(key string, defaultValue float64) float64 {
+	if node, ok := fp.node.Fields[key]; ok {
+		if numNode, ok := node.(*NumberNode); ok {
+			return numNode.Value
+		}
+	}
+	return defaultValue
+}
+
+func (fp *fieldParser) getBoolean(key string, defaultValue bool) bool {
+	if node, ok := fp.node.Fields[key]; ok {
+		if boolNode, ok := node.(*BooleanNode); ok {
+			return boolNode.Value
+		}
+	}
+	return defaultValue
+}
+
+func (fp *fieldParser) getUint8(key string, defaultValue uint8) uint8 {
+	return uint8(fp.getNumber(key, float64(defaultValue)))
+}
+
+func (fp *fieldParser) getInt(key string, defaultValue int) int {
+	return int(fp.getNumber(key, float64(defaultValue)))
+}
+
+func parseDiv(value string) int {
+	switch value {
+	case "4th-triplet":
+		return 16
+	case "8th":
+		return 12
+	case "8th-triplet":
+		return 8
+	case "16th":
+		return 6
+	case "32nd":
+		return 3
+	default:
+		return 24
+	}
+}
+
 // Parse functions for each metadata type
 func ParseSequenceMetadata(raw string) (SequenceMetadata, error) {
 	parser := NewParser(raw)
@@ -309,33 +370,12 @@ func ParseSequenceMetadata(raw string) (SequenceMetadata, error) {
 		return SequenceMetadata{}, err
 	}
 
-	m := SequenceMetadata{
-		BPM:  120,
-		Loop: false,
-		Sync: "none",
-	}
-
-	if bpmNode, ok := node.Fields["bpm"]; ok {
-		if numNode, ok := bpmNode.(*NumberNode); ok {
-			m.BPM = numNode.Value
-		}
-	}
-
-	if loopNode, ok := node.Fields["loop"]; ok {
-		if boolNode, ok := loopNode.(*BooleanNode); ok {
-			m.Loop = boolNode.Value
-		}
-	}
-
-	if syncNode, ok := node.Fields["sync"]; ok {
-		if strNode, ok := syncNode.(*StringNode); ok {
-			if strNode.Value == "leader" {
-				m.Sync = strNode.Value
-			}
-		}
-	}
-
-	return m, nil
+	fp := newFieldParser(node)
+	return SequenceMetadata{
+		BPM:  fp.getNumber("bpm", 120),
+		Loop: fp.getBoolean("loop", false),
+		Sync: fp.getString("sync", "none"),
+	}, nil
 }
 
 func ParsePartMetadata(raw string) (PartMetadata, error) {
@@ -345,49 +385,19 @@ func ParsePartMetadata(raw string) (PartMetadata, error) {
 		return PartMetadata{}, err
 	}
 
-	m := PartMetadata{
-		Name:    "default",
-		Group:   "default",
-		Channel: 1,
-		Div:     24,
+	fp := newFieldParser(node)
+	divStr := fp.getString("div", "")
+	div := 24
+	if divStr != "" {
+		div = parseDiv(divStr)
 	}
 
-	if nameNode, ok := node.Fields["name"]; ok {
-		if strNode, ok := nameNode.(*StringNode); ok {
-			m.Name = strNode.Value
-		}
-	}
-
-	if groupNode, ok := node.Fields["group"]; ok {
-		if strNode, ok := groupNode.(*StringNode); ok {
-			m.Group = strNode.Value
-		}
-	}
-
-	if chNode, ok := node.Fields["ch"]; ok {
-		if numNode, ok := chNode.(*NumberNode); ok {
-			m.Channel = uint8(numNode.Value)
-		}
-	}
-
-	if divNode, ok := node.Fields["div"]; ok {
-		if strNode, ok := divNode.(*StringNode); ok {
-			switch strNode.Value {
-			case "4th-triplet":
-				m.Div = 16
-			case "8th":
-				m.Div = 12
-			case "8th-triplet":
-				m.Div = 8
-			case "16th":
-				m.Div = 6
-			case "32nd":
-				m.Div = 3
-			}
-		}
-	}
-
-	return m, nil
+	return PartMetadata{
+		Name:    fp.getString("name", "default"),
+		Group:   fp.getString("group", "default"),
+		Channel: fp.getUint8("ch", 1),
+		Div:     div,
+	}, nil
 }
 
 func ParseArrangementMetadata(raw string) (ArrangementMetadata, error) {
@@ -397,24 +407,11 @@ func ParseArrangementMetadata(raw string) (ArrangementMetadata, error) {
 		return ArrangementMetadata{}, err
 	}
 
-	m := ArrangementMetadata{
-		Name:  "default",
-		Group: "default",
-	}
-
-	if nameNode, ok := node.Fields["name"]; ok {
-		if strNode, ok := nameNode.(*StringNode); ok {
-			m.Name = strNode.Value
-		}
-	}
-
-	if groupNode, ok := node.Fields["group"]; ok {
-		if strNode, ok := groupNode.(*StringNode); ok {
-			m.Group = strNode.Value
-		}
-	}
-
-	return m, nil
+	fp := newFieldParser(node)
+	return ArrangementMetadata{
+		Name:  fp.getString("name", "default"),
+		Group: fp.getString("group", "default"),
+	}, nil
 }
 
 func ParseFuncArpeggiateMetadata(raw string) (FuncArpeggiateMetadata, error) {
@@ -424,62 +421,21 @@ func ParseFuncArpeggiateMetadata(raw string) (FuncArpeggiateMetadata, error) {
 		return FuncArpeggiateMetadata{}, err
 	}
 
-	m := FuncArpeggiateMetadata{
+	fp := newFieldParser(node)
+	divStr := fp.getString("div", "")
+	div := 24
+	if divStr != "" {
+		div = parseDiv(divStr)
+	}
+
+	return FuncArpeggiateMetadata{
 		PartMetadata: PartMetadata{
-			Name:    "default",
-			Group:   "default",
-			Channel: 1,
-			Div:     24,
+			Name:    fp.getString("name", "default"),
+			Group:   fp.getString("group", "default"),
+			Channel: fp.getUint8("ch", 1),
+			Div:     div,
 		},
-		Length: 1,
-	}
-
-	if nameNode, ok := node.Fields["name"]; ok {
-		if strNode, ok := nameNode.(*StringNode); ok {
-			m.Name = strNode.Value
-		}
-	}
-
-	if groupNode, ok := node.Fields["group"]; ok {
-		if strNode, ok := groupNode.(*StringNode); ok {
-			m.Group = strNode.Value
-		}
-	}
-
-	if chNode, ok := node.Fields["ch"]; ok {
-		if numNode, ok := chNode.(*NumberNode); ok {
-			m.Channel = uint8(numNode.Value)
-		}
-	}
-
-	if divNode, ok := node.Fields["div"]; ok {
-		if strNode, ok := divNode.(*StringNode); ok {
-			switch strNode.Value {
-			case "4th-triplet":
-				m.Div = 16
-			case "8th":
-				m.Div = 12
-			case "8th-triplet":
-				m.Div = 8
-			case "16th":
-				m.Div = 6
-			case "32nd":
-				m.Div = 3
-			}
-		}
-	}
-
-	if notesNode, ok := node.Fields["notes"]; ok {
-		if strNode, ok := notesNode.(*StringNode); ok {
-			m.Notes = strNode.Value
-		}
-	}
-
-	if lengthNode, ok := node.Fields["length"]; ok {
-		if numNode, ok := lengthNode.(*NumberNode); ok {
-			m.Length = int(numNode.Value)
-		}
-	}
-
-	return m, nil
+		Notes:  fp.getString("notes", ""),
+		Length: fp.getInt("length", 1),
+	}, nil
 }
