@@ -3,7 +3,6 @@ package part
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"unicode"
 )
 
@@ -36,6 +35,9 @@ type NoteNode struct {
 }
 
 func (n *NoteNode) TokenLiteral() string {
+	if n.Duration > 0 {
+		return fmt.Sprintf("%s%d:%d", n.Note, n.Octave, n.Duration)
+	}
 	return fmt.Sprintf("%s%d", n.Note, n.Octave)
 }
 
@@ -46,6 +48,9 @@ type ChordNode struct {
 }
 
 func (c *ChordNode) TokenLiteral() string {
+	if c.Duration > 0 {
+		return fmt.Sprintf("%s%s:%d", c.Root, c.Quality, c.Duration)
+	}
 	return fmt.Sprintf("%s%s", c.Root, c.Quality)
 }
 
@@ -83,21 +88,53 @@ func tokenize(input string) []Token {
 			tokens = append(tokens, Token{Type: NUMBER, Literal: string(runes[start:i])})
 		case unicode.IsLetter(runes[i]):
 			start := i
-			// Validate first letter is a-g
-			firstLetter := strings.ToLower(string(runes[i]))
-			if firstLetter < "a" || firstLetter > "g" {
-				// Return a single ILLEGAL token to indicate error
-				return []Token{{Type: ILLEGAL, Literal: fmt.Sprintf("invalid note: %s", string(runes[i]))}}
-			}
-			// Handle note/chord name
-			for i < len(runes) && (unicode.IsLetter(runes[i]) || runes[i] == 'b' || runes[i] == '#') {
-				i++
-			}
-			literal := string(runes[start:i])
-			if len(literal) == 1 || (len(literal) == 2 && (literal[1] == 'b' || literal[1] == '#')) {
-				tokens = append(tokens, Token{Type: NOTE, Literal: literal})
+			firstLetter := string(runes[i])
+
+			// For notes, we need to handle the octave number as part of the token
+			if unicode.IsLower(runes[start]) {
+				// Notes must be lowercase a-g
+				if firstLetter < "a" || firstLetter > "g" {
+					return []Token{{Type: ILLEGAL, Literal: fmt.Sprintf("invalid note: %s", firstLetter)}}
+				}
+
+				// Read the note letter and any accidentals
+				noteEnd := start + 1
+				accidentalCount := 0
+				for noteEnd < len(runes) && (runes[noteEnd] == 'b' || runes[noteEnd] == '#') {
+					accidentalCount++
+					if accidentalCount > 1 {
+						return []Token{{Type: ILLEGAL, Literal: fmt.Sprintf("invalid note: %s", string(runes[start:noteEnd+1]))}}
+					}
+					noteEnd++
+				}
+
+				// Read the octave number if present
+				octaveEnd := noteEnd
+				for octaveEnd < len(runes) && unicode.IsDigit(runes[octaveEnd]) {
+					octaveEnd++
+				}
+
+				note := string(runes[start:noteEnd])
+				tokens = append(tokens, Token{Type: NOTE, Literal: note})
+
+				// If we found an octave number, add it as a separate token
+				if octaveEnd > noteEnd {
+					tokens = append(tokens, Token{Type: NUMBER, Literal: string(runes[noteEnd:octaveEnd])})
+				}
+
+				i = octaveEnd
 			} else {
-				tokens = append(tokens, Token{Type: CHORD, Literal: literal})
+				// For chords, read until we hit a space, colon, or end
+				for i < len(runes) && runes[i] != ':' && !unicode.IsSpace(runes[i]) {
+					i++
+				}
+				token := string(runes[start:i])
+
+				// Chords must be uppercase A-G
+				if firstLetter < "A" || firstLetter > "G" {
+					return []Token{{Type: ILLEGAL, Literal: fmt.Sprintf("invalid chord root: %s", firstLetter)}}
+				}
+				tokens = append(tokens, Token{Type: CHORD, Literal: token})
 			}
 		default:
 			i++
@@ -174,12 +211,26 @@ func (p *Parser) parseChord() (*ChordNode, error) {
 	chordToken := p.advance()
 	chord := chordToken.Literal
 
-	// Split root and quality
-	root := strings.ToUpper(chord[:1])
+	// Extract root note (must be A-G, optionally followed by b or #)
+	root := chord[:1]
 	if len(chord) > 1 && (chord[1] == 'b' || chord[1] == '#') {
 		root = chord[:2]
 	}
 	quality := chord[len(root):]
+
+	// Validate chord quality
+	if quality != "" {
+		// Common chord qualities: m, M, 7, 9, 11, 13, dim, aug, sus
+		validQualities := map[string]bool{
+			"m": true, "M": true, "7": true, "9": true, "11": true, "13": true,
+			"dim": true, "aug": true, "sus": true, "m7": true, "M7": true,
+			"m9": true, "M9": true, "m11": true, "M11": true, "m13": true,
+			"M13": true, "dim7": true, "aug7": true, "sus4": true, "sus2": true,
+		}
+		if !validQualities[quality] {
+			return nil, fmt.Errorf("invalid chord quality: %s", quality)
+		}
+	}
 
 	duration := 0
 	if p.match(COLON) {
