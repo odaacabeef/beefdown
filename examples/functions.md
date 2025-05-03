@@ -1,6 +1,8 @@
 # Functions
 
-Functions generate parts by specifying behavior through its arguments.
+Functions generate parts.
+
+## Arpeggiate
 
 ````
 ```beef.func.arpeggiate
