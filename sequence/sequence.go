@@ -4,6 +4,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	metaparser "github.com/odaacabeef/beefdown/sequence/parsers/metadata"
 )
 
 type Sequence struct {
@@ -39,7 +41,7 @@ func (s *Sequence) parse() error {
 	}
 
 	// populate default sequence metadata
-	seqMeta, err := newSequenceMetadata("")
+	seqMeta, err := metaparser.ParseSequenceMetadata("")
 	if err != nil {
 		return err
 	}
@@ -52,13 +54,13 @@ func (s *Sequence) parse() error {
 
 		switch {
 		case strings.HasPrefix(lines[0], ".sequence"):
-			seqMeta, err = newSequenceMetadata(b[1])
+			seqMeta, err = metaparser.ParseSequenceMetadata(b[1])
 			if err != nil {
 				return err
 			}
 
 		case strings.HasPrefix(lines[0], ".part"):
-			meta, err := newPartMetadata(lines[0])
+			meta, err := metaparser.ParsePartMetadata(lines[0])
 			if err != nil {
 				return err
 			}
@@ -81,7 +83,7 @@ func (s *Sequence) parse() error {
 			s.Playable = append(s.Playable, &p)
 
 		case strings.HasPrefix(lines[0], ".arrangement"):
-			meta, err := newArrangementMetadata(lines[0])
+			meta, err := metaparser.ParseArrangementMetadata(lines[0])
 			if err != nil {
 				return err
 			}
@@ -101,7 +103,7 @@ func (s *Sequence) parse() error {
 
 		case strings.HasPrefix(lines[0], ".func.arpeggiate"):
 
-			meta, err := newFuncArpeggiateMetadata(b[1])
+			meta, err := metaparser.ParseFuncArpeggiateMetadata(b[1])
 
 			if err != nil {
 				return err
