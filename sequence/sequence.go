@@ -130,6 +130,37 @@ func (s *Sequence) parse() error {
 			s.Parts = append(s.Parts, &f.Part)
 			s.Playable = append(s.Playable, &f.Part)
 
+		case strings.HasPrefix(lines[0], ".func.groove"):
+
+			meta, err := metaparser.ParseFuncGrooveMetadata(b[1])
+
+			if err != nil {
+				return err
+			}
+
+			f := FuncGroove{
+				Part: Part{
+					name:    meta.Name,
+					group:   meta.Group,
+					channel: meta.Channel,
+					div:     meta.Div,
+				},
+				Notes:     meta.Notes,
+				Length:    meta.Length,
+				Entropy:   meta.Entropy,
+				Strategy:  meta.Strategy,
+				Algorithm: meta.Algorithm,
+			}
+
+			f.buildSteps()
+
+			err = f.parseMIDI()
+			if err != nil {
+				return err
+			}
+
+			s.Parts = append(s.Parts, &f.Part)
+			s.Playable = append(s.Playable, &f.Part)
 		}
 	}
 

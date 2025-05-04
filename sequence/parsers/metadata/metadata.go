@@ -21,6 +21,7 @@ const (
 	COLON
 	NUMBER
 	BOOLEAN
+	QUOTED_STRING
 )
 
 // Metadata structs
@@ -48,6 +49,15 @@ type FuncArpeggiateMetadata struct {
 	Length int
 }
 
+type FuncGrooveMetadata struct {
+	PartMetadata
+	Notes     string
+	Length    int
+	Entropy   string
+	Strategy  string
+	Algorithm string
+}
+
 func (t TokenType) String() string {
 	switch t {
 	case ILLEGAL:
@@ -62,6 +72,8 @@ func (t TokenType) String() string {
 		return "NUMBER"
 	case BOOLEAN:
 		return "BOOLEAN"
+	case QUOTED_STRING:
+		return "QUOTED_STRING"
 	default:
 		return "UNKNOWN"
 	}
@@ -133,6 +145,23 @@ func tokenize(input string) []Token {
 		case runes[i] == ':':
 			tokens = append(tokens, Token{Type: COLON, Literal: ":"})
 			i++
+		case runes[i] == '"' || runes[i] == '\'':
+			// Handle quoted strings
+			quote := runes[i]
+			start := i
+			i++ // Skip opening quote
+			for i < len(runes) && runes[i] != quote {
+				i++
+			}
+			if i < len(runes) {
+				// Include the quotes in the literal
+				literal := string(runes[start : i+1])
+				tokens = append(tokens, Token{Type: QUOTED_STRING, Literal: literal})
+				i++
+			} else {
+				// Unclosed quote
+				tokens = append(tokens, Token{Type: ILLEGAL, Literal: string(runes[start:])})
+			}
 		case unicode.IsDigit(runes[i]):
 			// Check if this is part of an alphanumeric identifier
 			start := i
@@ -224,7 +253,7 @@ func (p *Parser) Parse() (*MetadataNode, error) {
 			value, err = p.parseNumber()
 		case BOOLEAN:
 			value, err = p.parseBoolean()
-		case IDENTIFIER:
+		case IDENTIFIER, QUOTED_STRING:
 			value, err = p.parseString()
 		default:
 			return nil, fmt.Errorf("unexpected token type: %v (literal: %s)", p.peek().Type, p.peek().Literal)
@@ -259,10 +288,19 @@ func (p *Parser) parseBoolean() (*BooleanNode, error) {
 }
 
 func (p *Parser) parseString() (*StringNode, error) {
-	if !p.match(IDENTIFIER) {
+	if !p.match(IDENTIFIER, QUOTED_STRING) {
 		return nil, fmt.Errorf("expected string")
 	}
-	return &StringNode{Value: p.previous().Literal}, nil
+	token := p.previous()
+	if token.Type == QUOTED_STRING {
+		// Remove the quotes from the literal
+		literal := token.Literal
+		if len(literal) >= 2 {
+			literal = literal[1 : len(literal)-1]
+		}
+		return &StringNode{Value: literal}, nil
+	}
+	return &StringNode{Value: token.Literal}, nil
 }
 
 func (p *Parser) advance() Token {
@@ -437,5 +475,42 @@ func ParseFuncArpeggiateMetadata(raw string) (FuncArpeggiateMetadata, error) {
 		},
 		Notes:  fp.getString("notes", ""),
 		Length: fp.getInt("length", 1),
+	}, nil
+}
+
+func ParseFuncGrooveMetadata(raw string) (FuncGrooveMetadata, error) {
+	parser := NewParser(raw)
+	node, err := parser.Parse()
+	if err != nil {
+		return FuncGrooveMetadata{}, err
+	}
+
+	fp := newFieldParser(node)
+	divStr := fp.getString("div", "")
+	div := 24
+	if divStr != "" {
+		div = parseDiv(divStr)
+	}
+
+	// Special handling for entropy to preserve quoted strings
+	entropy := ""
+	if entropyNode, ok := node.Fields["entropy"]; ok {
+		if strNode, ok := entropyNode.(*StringNode); ok {
+			entropy = strNode.Value
+		}
+	}
+
+	return FuncGrooveMetadata{
+		PartMetadata: PartMetadata{
+			Name:    fp.getString("name", "default"),
+			Group:   fp.getString("group", "default"),
+			Channel: fp.getUint8("ch", 1),
+			Div:     div,
+		},
+		Notes:     fp.getString("notes", ""),
+		Length:    fp.getInt("length", 1),
+		Entropy:   entropy,
+		Strategy:  fp.getString("strategy", "syllable"),
+		Algorithm: fp.getString("algorithm", "sha256"),
 	}, nil
 }
