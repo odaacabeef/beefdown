@@ -2,6 +2,7 @@ package device
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -34,14 +35,30 @@ type Device struct {
 	sendF func(midi.Message) error
 }
 
-func New() (*Device, error) {
-	out, err := drivers.Get().(*rtmididrv.Driver).OpenVirtualOut(deviceName)
-	if err != nil {
-		return nil, err
+// New creates a new Device
+// If outputName is empty, it uses the default virtual output "beefdown"
+// If outputName is provided, it tries to connect to an existing MIDI output with that name
+func New(outputName string) (*Device, error) {
+	var out drivers.Out
+	var err error
+
+	if outputName == "" {
+		// Use virtual output
+		out, err = drivers.Get().(*rtmididrv.Driver).OpenVirtualOut(deviceName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open virtual MIDI output: %w", err)
+		}
+	} else {
+		// Try to connect to existing MIDI output
+		out, err = drivers.OutByName(outputName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to MIDI output '%s': %w", outputName, err)
+		}
 	}
+
 	send, err := midi.SendTo(out)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create MIDI sender: %w", err)
 	}
 
 	return &Device{
@@ -55,6 +72,21 @@ func New() (*Device, error) {
 			ch: make(map[string]chan struct{}),
 		},
 	}, nil
+}
+
+// ListOutputs returns a list of available MIDI output ports
+func ListOutputs() ([]string, error) {
+	outs, err := drivers.Outs()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list MIDI outputs: %w", err)
+	}
+
+	var outputNames []string
+	for _, out := range outs {
+		outputNames = append(outputNames, out.String())
+	}
+
+	return outputNames, nil
 }
 
 func (d *Device) send(mm midi.Message) {

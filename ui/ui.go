@@ -6,9 +6,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func Start(sequencePath string) error {
+func StartWithOutput(sequencePath string, midiOutput string) error {
 
-	m, err := initialModel(sequencePath)
+	m, err := initialModelWithOutput(sequencePath, midiOutput)
 	if err != nil {
 		return err
 	}
@@ -18,8 +18,8 @@ func Start(sequencePath string) error {
 	return err
 }
 
-func initialModel(sequencePath string) (*model, error) {
-	d, err := device.New()
+func initialModelWithOutput(sequencePath string, midiOutput string) (*model, error) {
+	d, err := device.New(midiOutput)
 	if err != nil {
 		return nil, err
 	}

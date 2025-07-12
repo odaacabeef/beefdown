@@ -207,3 +207,19 @@ ks-2 hh-3 a' b *2
 ks-2 hh-4 a' b *2
 ```
 ````
+
+## MIDI Output Configuration
+
+By default, beefdown creates a virtual MIDI output called "beefdown". You can
+also connect to existing MIDI devices:
+
+```bash
+# List available MIDI outputs
+beefdown -list-outputs
+
+# Use a specific MIDI output
+beefdown -output 'Crumar Seven' sequence.md
+
+# Use default virtual output
+beefdown sequence.md
+```
