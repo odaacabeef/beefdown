@@ -115,11 +115,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.stop()
 			}
 			err := m.loadSequence(m.sequence.Path)
+
+			m.errMu.Lock()
+			m.errs = []error{} // clear errors
 			if err != nil {
-				m.errMu.Lock()
 				m.errs = append(m.errs, err)
-				m.errMu.Unlock()
 			}
+			m.errMu.Unlock()
 
 		case "h", "left":
 			m.mu.Lock()
