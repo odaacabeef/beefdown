@@ -50,15 +50,6 @@ type FuncArpeggiateMetadata struct {
 	Length int
 }
 
-type FuncGrooveMetadata struct {
-	PartMetadata
-	Notes     string
-	Length    int
-	Entropy   string
-	Strategy  string
-	Algorithm string
-}
-
 func (t TokenType) String() string {
 	switch t {
 	case ILLEGAL:
@@ -476,42 +467,5 @@ func ParseFuncArpeggiateMetadata(raw string) (FuncArpeggiateMetadata, error) {
 		},
 		Notes:  fp.getString("notes", ""),
 		Length: fp.getInt("length", 1),
-	}, nil
-}
-
-func ParseFuncGrooveMetadata(raw string) (FuncGrooveMetadata, error) {
-	parser := NewParser(raw)
-	node, err := parser.Parse()
-	if err != nil {
-		return FuncGrooveMetadata{}, err
-	}
-
-	fp := newFieldParser(node)
-	divStr := fp.getString("div", "")
-	div := 24
-	if divStr != "" {
-		div = parseDiv(divStr)
-	}
-
-	// Special handling for entropy to preserve quoted strings
-	entropy := ""
-	if entropyNode, ok := node.Fields["entropy"]; ok {
-		if strNode, ok := entropyNode.(*StringNode); ok {
-			entropy = strNode.Value
-		}
-	}
-
-	return FuncGrooveMetadata{
-		PartMetadata: PartMetadata{
-			Name:    fp.getString("name", "default"),
-			Group:   fp.getString("group", "default"),
-			Channel: fp.getUint8("ch", 1),
-			Div:     div,
-		},
-		Notes:     fp.getString("notes", ""),
-		Length:    fp.getInt("length", 1),
-		Entropy:   entropy,
-		Strategy:  fp.getString("strategy", "syllable"),
-		Algorithm: fp.getString("algorithm", "sha256"),
 	}, nil
 }

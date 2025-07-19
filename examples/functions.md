@@ -38,25 +38,3 @@ length:32
 arp-1 arp-2
 ```
 ````
-
-## Groove
-
-````
-```beef.func.groove
-name:groove-1
-group:groove
-div:8th
-ch:3
-notes:e3,g3,c4,e4,g4,b4
-length:32
-entropy:"This string will dictate the groove boogie"
-strategy:syllable
-algorithm:sha256
-```
-````
-
-````
-```beef.arrangement name:all group:all
-arps groove-1
-```
-````
