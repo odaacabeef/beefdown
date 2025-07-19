@@ -145,11 +145,11 @@ func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool,
 	d.loop = loop
 	d.sync = sync
 
-	switch playable.(type) {
+	switch playable := playable.(type) {
 	case *sequence.Arrangement:
-		go d.playPrimary(ctx, playable.(*sequence.Arrangement))
+		go d.playPrimary(ctx, playable)
 	case *sequence.Part:
-		go d.playPrimary(ctx, playable.(*sequence.Part).Arrangement())
+		go d.playPrimary(ctx, playable.Arrangement())
 	}
 }
 
@@ -181,7 +181,7 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 	for {
 		select {
 		case <-ctx.Done():
-			break
+			return
 		case <-d.ticker.C:
 			d.clockSub.pub()
 			d.clockCh <- struct{}{}
@@ -226,10 +226,10 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, don
 				var stepParts []*sequence.Part
 				for _, p := range stepPlayables {
 					wg.Add(1)
-					switch p.(type) {
+					switch p := p.(type) {
 					case *sequence.Part:
 						tick = append(tick, make(chan struct{}))
-						stepParts = append(stepParts, p.(*sequence.Part))
+						stepParts = append(stepParts, p)
 						go func(part *sequence.Part, t chan struct{}) {
 							defer wg.Done()
 							for sidx, sm := range part.StepMIDI {
@@ -246,11 +246,11 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, don
 									}
 								}
 							}
-						}(p.(*sequence.Part), tick[len(tick)-1])
+						}(p, tick[len(tick)-1])
 					case *sequence.Arrangement:
 						go func() {
 							defer wg.Done()
-							d.playRecursive(ctx, p.(*sequence.Arrangement), nil)
+							d.playRecursive(ctx, p, nil)
 						}()
 					}
 				}

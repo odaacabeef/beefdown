@@ -2,6 +2,7 @@ package part
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"unicode"
 )
@@ -271,11 +272,11 @@ func (p *Parser) isAtEnd() bool {
 }
 
 func (p *Parser) match(types ...TokenType) bool {
-	for _, t := range types {
-		if p.check(t) {
-			p.advance()
-			return true
-		}
+	if slices.ContainsFunc(types, func(t TokenType) bool {
+		return p.check(t)
+	}) {
+		p.advance()
+		return true
 	}
 	return false
 }

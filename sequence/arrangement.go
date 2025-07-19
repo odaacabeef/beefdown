@@ -69,9 +69,9 @@ partsOnly:
 	for i, stepPlayables := range a.Playables {
 		var mostBeats int
 		for _, playable := range stepPlayables {
-			switch playable.(type) {
+			switch playable := playable.(type) {
 			case *Part:
-				part := playable.(*Part)
+				part := playable
 				beats := len(part.StepMIDI) * part.Div()
 				if beats > mostBeats {
 					mostBeats = beats
