@@ -5,6 +5,8 @@ The `sync` setting supports two options: `none` and `leader`.
 When set to `leader`, MIDI clock, start, and stop messages are sent. They can be
 used to sync other MIDI devices.
 
+A dedicated virtual MIDI device is used for sync messages: `beefdown-sync`.
+
 ## Ableton Live
 
 This has been tested with Ableton Live for recording MIDI.
