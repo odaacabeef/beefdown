@@ -15,6 +15,7 @@ import (
 )
 
 const deviceName = "beefdown"
+const syncDeviceName = "beefdown-sync"
 
 type Device struct {
 	bpm   float64
@@ -32,7 +33,8 @@ type Device struct {
 
 	clockSub sub
 
-	sendF func(midi.Message) error
+	sendTrackF func(midi.Message) error
+	sendSyncF  func(midi.Message) error
 }
 
 // New creates a new Device
@@ -56,13 +58,23 @@ func New(outputName string) (*Device, error) {
 		}
 	}
 
-	send, err := midi.SendTo(out)
+	sendTrackF, err := midi.SendTo(out)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create MIDI sender: %w", err)
 	}
 
+	// Create dedicated virtual output for sync messages
+	syncOut, err := drivers.Get().(*rtmididrv.Driver).OpenVirtualOut(syncDeviceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open virtual MIDI sync output: %w", err)
+	}
+
+	sendSyncF, err := midi.SendTo(syncOut)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create MIDI sync sender: %w", err)
+	}
+
 	return &Device{
-		sendF:    send,
 		state:    newState(),
 		playCh:   make(chan struct{}),
 		stopCh:   make(chan struct{}),
@@ -71,6 +83,8 @@ func New(outputName string) (*Device, error) {
 		clockSub: sub{
 			ch: make(map[string]chan struct{}),
 		},
+		sendTrackF: sendTrackF,
+		sendSyncF:  sendSyncF,
 	}, nil
 }
 
@@ -89,8 +103,20 @@ func ListOutputs() ([]string, error) {
 	return outputNames, nil
 }
 
-func (d *Device) send(mm midi.Message) {
-	err := d.sendF(mm)
+func (d *Device) sendTrack(mm midi.Message) {
+	err := d.sendTrackF(mm)
+	if err != nil {
+		select {
+		case d.errorsCh <- err:
+			// Error sent successfully
+		default:
+			// Channel is full, drop the error
+		}
+	}
+}
+
+func (d *Device) sendSync(mm midi.Message) {
+	err := d.sendSyncF(mm)
 	if err != nil {
 		select {
 		case d.errorsCh <- err:
@@ -131,7 +157,7 @@ func (d *Device) Stopped() bool {
 
 func (d *Device) silence() {
 	for _, m := range midi.SilenceChannel(-1) {
-		d.send(m)
+		d.sendTrack(m)
 	}
 }
 
@@ -164,7 +190,7 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 		d.state.stop()
 		d.stopCh <- struct{}{}
 		if d.sync == "leader" {
-			d.send(midi.Stop())
+			d.sendSync(midi.Stop())
 		}
 		d.silence()
 	}()
@@ -172,7 +198,7 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 	d.state.play()
 	d.playCh <- struct{}{}
 	if d.sync == "leader" {
-		d.send(midi.Start())
+		d.sendSync(midi.Start())
 	}
 
 	done := make(chan struct{})
@@ -186,7 +212,7 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 			d.clockSub.pub()
 			d.clockCh <- struct{}{}
 			if d.sync == "leader" {
-				d.send(midi.TimingClock())
+				d.sendSync(midi.TimingClock())
 			}
 		case <-done:
 			return
@@ -239,10 +265,10 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, don
 								case <-t:
 									part.UpdateStep(sidx)
 									for _, m := range sm.Off {
-										d.send(m)
+										d.sendTrack(m)
 									}
 									for _, m := range sm.On {
-										d.send(m)
+										d.sendTrack(m)
 									}
 								}
 							}
