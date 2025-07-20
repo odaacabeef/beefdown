@@ -51,14 +51,27 @@ func (v *viewport) cropX(groupNames []string, groupX []int, groupPlayables [][]s
 			continue
 		}
 
+		// Ensure groupX[i] is within bounds
+		selectedIndex := groupX[i]
+		if selectedIndex >= len(playables) {
+			selectedIndex = len(playables) - 1
+		}
+		if selectedIndex < 0 {
+			selectedIndex = 0
+		}
+
 		// the width necessary for this groups (last) selected playable to be completely in view
-		xSelectedWidth := lipgloss.Width(joinHorizontal(playables[0 : groupX[i]+1]...))
+		xSelectedWidth := lipgloss.Width(joinHorizontal(playables[0 : selectedIndex+1]...))
 
 		// the index of the first charater of the (last) selected playable
-		xSelectedStart := xSelectedWidth - lipgloss.Width(playables[groupX[i]])
+		xSelectedStart := xSelectedWidth - lipgloss.Width(playables[selectedIndex])
 
-		if i == len(v.xStart) {
-			v.xStart = append(v.xStart, 0)
+		// Ensure v.xStart has enough elements before accessing v.xStart[i]
+		if i >= len(v.xStart) {
+			// Extend v.xStart to accommodate the new index
+			for len(v.xStart) <= i {
+				v.xStart = append(v.xStart, 0)
+			}
 		}
 
 		// last x index
@@ -71,11 +84,23 @@ func (v *viewport) cropX(groupNames []string, groupX []int, groupPlayables [][]s
 			v.xStart[i] = xSelectedStart
 		}
 
+		// Ensure xStart[i] is not negative
+		if v.xStart[i] < 0 {
+			v.xStart[i] = 0
+		}
+
 		xLast = rowWidth + v.xStart[i]
 
 		var linesCropped []string
 		for _, line := range strings.Split(row, "\n") {
-			linesCropped = append(linesCropped, line[v.xStart[i]:])
+			// Ensure we don't go out of bounds when slicing
+			start := v.xStart[i]
+			if start >= len(line) {
+				// If start position is beyond the line length, return empty string
+				linesCropped = append(linesCropped, "")
+			} else {
+				linesCropped = append(linesCropped, line[start:])
+			}
 		}
 
 		x = append(x, joinHorizontal(aside, strings.Join(linesCropped, "\n")))
@@ -96,11 +121,20 @@ func (v *viewport) cropY(header string, groups []string, selected coordinates) s
 		return header + body
 	}
 
+	// Ensure selected.y is within bounds
+	selectedY := selected.y
+	if selectedY >= len(groups) {
+		selectedY = len(groups) - 1
+	}
+	if selectedY < 0 {
+		selectedY = 0
+	}
+
 	// the height necessary for the selected playable to be completely in view
-	selectedHeight := lipgloss.Height(strings.Join(groups[0:selected.y+1], ""))
+	selectedHeight := lipgloss.Height(strings.Join(groups[0:selectedY+1], ""))
 
 	// the first line of the selected playable
-	selectedStart := selectedHeight - lipgloss.Height(groups[selected.y])
+	selectedStart := selectedHeight - lipgloss.Height(groups[selectedY])
 
 	// last viewable line
 	lastLine := bodyHeight + v.yStart
@@ -117,7 +151,17 @@ func (v *viewport) cropY(header string, groups []string, selected coordinates) s
 		v.yStart = len(lines) - bodyHeight
 	}
 
+	// Ensure yStart is not negative
+	if v.yStart < 0 {
+		v.yStart = 0
+	}
+
 	lastLine = bodyHeight + v.yStart
+
+	// Ensure lastLine doesn't exceed the number of lines
+	if lastLine > len(lines) {
+		lastLine = len(lines)
+	}
 
 	if lipgloss.Height(body) > bodyHeight {
 		body = strings.Join(lines[v.yStart:lastLine], "\n")
