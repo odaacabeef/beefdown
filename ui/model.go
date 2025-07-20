@@ -39,6 +39,15 @@ type model struct {
 }
 
 func (m *model) loadSequence(sequencePath string) error {
+	// Store current selection state before reload
+	oldSelected := m.selected
+	oldGroupX := make(map[string]int)
+	for k, v := range m.groupX {
+		oldGroupX[k] = v
+	}
+	oldGroupNames := make([]string, len(m.groupNames))
+	copy(oldGroupNames, m.groupNames)
+
 	s, err := sequence.New(sequencePath)
 	if err != nil {
 		return err
@@ -58,7 +67,139 @@ groupPlayables:
 		m.groupNames = append(m.groupNames, p.Group())
 		m.groupX[p.Group()] = 0
 	}
+
+	// Restore and validate selection state
+	m.restoreSelection(oldSelected, oldGroupX, oldGroupNames)
+
+	// Reset viewport state to ensure current selection is visible
+	m.viewport.xStart = []int{}
+	m.viewport.yStart = 0
+
 	return nil
+}
+
+// restoreSelection attempts to restore the previous selection state after a reload,
+// adjusting coordinates to be within valid bounds if necessary
+func (m *model) restoreSelection(oldSelected coordinates, oldGroupX map[string]int, oldGroupNames []string) {
+	// Try to find the same group name in the new group list
+	targetGroupIndex := -1
+	if oldSelected.y >= 0 && oldSelected.y < len(oldGroupNames) {
+		oldGroupName := oldGroupNames[oldSelected.y]
+		for i, newGroupName := range m.groupNames {
+			if newGroupName == oldGroupName {
+				targetGroupIndex = i
+				break
+			}
+		}
+	}
+
+	// If we found the same group, try to restore the selection within that group
+	if targetGroupIndex >= 0 {
+		groupName := m.groupNames[targetGroupIndex]
+		playables := m.groups[groupName]
+
+		// Restore the groupX value for this group
+		if oldX, exists := oldGroupX[groupName]; exists && oldX >= 0 && oldX < len(playables) {
+			m.groupX[groupName] = oldX
+			m.selected.x = oldX
+		} else {
+			// Fallback to a valid index
+			if len(playables) > 0 {
+				m.groupX[groupName] = 0
+				m.selected.x = 0
+			} else {
+				m.groupX[groupName] = 0
+				m.selected.x = 0
+			}
+		}
+		m.selected.y = targetGroupIndex
+	} else {
+		// If we couldn't find the same group, select the first available group
+		if len(m.groupNames) > 0 {
+			m.selected.y = 0
+			firstGroup := m.groupNames[0]
+			firstGroupPlayables := m.groups[firstGroup]
+			if len(firstGroupPlayables) > 0 {
+				m.selected.x = 0
+				m.groupX[firstGroup] = 0
+			} else {
+				m.selected.x = 0
+				m.groupX[firstGroup] = 0
+			}
+		} else {
+			// No groups available, reset to safe defaults
+			m.selected.x = 0
+			m.selected.y = 0
+		}
+	}
+
+	// Final validation to ensure coordinates are within bounds
+	if m.selected.y >= len(m.groupNames) {
+		m.selected.y = len(m.groupNames) - 1
+		if m.selected.y < 0 {
+			m.selected.y = 0
+		}
+	}
+
+	if m.selected.y >= 0 && m.selected.y < len(m.groupNames) {
+		groupName := m.groupNames[m.selected.y]
+		playables := m.groups[groupName]
+		if m.selected.x >= len(playables) {
+			m.selected.x = len(playables) - 1
+			if m.selected.x < 0 {
+				m.selected.x = 0
+			}
+		}
+		m.groupX[groupName] = m.selected.x
+	}
+}
+
+// validateSelection ensures that the current selection coordinates are within valid bounds
+func (m *model) validateSelection() {
+	// Ensure y coordinate is within bounds
+	if m.selected.y < 0 {
+		m.selected.y = 0
+	}
+	if m.selected.y >= len(m.groupNames) {
+		if len(m.groupNames) > 0 {
+			m.selected.y = len(m.groupNames) - 1
+		} else {
+			m.selected.y = 0
+		}
+	}
+
+	// Ensure x coordinate is within bounds for the current group
+	if m.selected.y >= 0 && m.selected.y < len(m.groupNames) {
+		groupName := m.groupNames[m.selected.y]
+		playables := m.groups[groupName]
+
+		if m.selected.x < 0 {
+			m.selected.x = 0
+		}
+		if m.selected.x >= len(playables) {
+			if len(playables) > 0 {
+				m.selected.x = len(playables) - 1
+			} else {
+				m.selected.x = 0
+			}
+		}
+
+		// Update groupX to match the validated selection
+		m.groupX[groupName] = m.selected.x
+	}
+}
+
+// getCurrentGroup safely returns the current group name and playables, with bounds checking
+func (m *model) getCurrentGroup() (string, []sequence.Playable) {
+	if m.selected.y < 0 || m.selected.y >= len(m.groupNames) {
+		if len(m.groupNames) > 0 {
+			return m.groupNames[0], m.groups[m.groupNames[0]]
+		}
+		return "", nil
+	}
+	groupName := m.groupNames[m.selected.y]
+	playables := m.groups[groupName]
+	return groupName, playables
 }
 
 func (m *model) Init() tea.Cmd {
@@ -125,17 +266,19 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "h", "left":
 			m.mu.Lock()
-			if m.selected.x > 0 {
+			groupName, playables := m.getCurrentGroup()
+			if groupName != "" && len(playables) > 0 && m.selected.x > 0 {
 				m.selected.x--
-				m.groupX[m.groupNames[m.selected.y]] = m.selected.x
+				m.groupX[groupName] = m.selected.x
 			}
 			m.mu.Unlock()
 
 		case "l", "right":
 			m.mu.Lock()
-			if m.selected.x < len(m.groups[m.groupNames[m.selected.y]])-1 {
+			groupName, playables := m.getCurrentGroup()
+			if groupName != "" && m.selected.x < len(playables)-1 {
 				m.selected.x++
-				m.groupX[m.groupNames[m.selected.y]] = m.selected.x
+				m.groupX[groupName] = m.selected.x
 			}
 			m.mu.Unlock()
 
@@ -143,7 +286,14 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mu.Lock()
 			if m.selected.y > 0 {
 				m.selected.y--
-				m.selected.x = m.groupX[m.groupNames[m.selected.y]]
+				groupName, playables := m.getCurrentGroup()
+				if groupName != "" {
+					// Ensure the restored x coordinate is within bounds
+					if m.groupX[groupName] >= len(playables) {
+						m.groupX[groupName] = 0
+					}
+					m.selected.x = m.groupX[groupName]
+				}
 			}
 			m.mu.Unlock()
 
@@ -151,32 +301,63 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mu.Lock()
 			if m.selected.y < len(m.groupNames)-1 {
 				m.selected.y++
-				m.selected.x = m.groupX[m.groupNames[m.selected.y]]
+				groupName, playables := m.getCurrentGroup()
+				if groupName != "" {
+					// Ensure the restored x coordinate is within bounds
+					if m.groupX[groupName] >= len(playables) {
+						m.groupX[groupName] = 0
+					}
+					m.selected.x = m.groupX[groupName]
+				}
 			}
 			m.mu.Unlock()
 
 		case "0":
 			m.mu.Lock()
-			m.selected.x = 0
-			m.groupX[m.groupNames[m.selected.y]] = m.selected.x
+			groupName, playables := m.getCurrentGroup()
+			if groupName != "" && len(playables) > 0 {
+				m.selected.x = 0
+				m.groupX[groupName] = m.selected.x
+			}
 			m.mu.Unlock()
 
 		case "$":
 			m.mu.Lock()
-			m.selected.x = len(m.groups[m.groupNames[m.selected.y]]) - 1
-			m.groupX[m.groupNames[m.selected.y]] = m.selected.x
+			groupName, playables := m.getCurrentGroup()
+			if groupName != "" && len(playables) > 0 {
+				m.selected.x = len(playables) - 1
+				m.groupX[groupName] = m.selected.x
+			}
 			m.mu.Unlock()
 
 		case "g":
 			m.mu.Lock()
-			m.selected.y = 0
-			m.selected.x = m.groupX[m.groupNames[m.selected.y]]
+			if len(m.groupNames) > 0 {
+				m.selected.y = 0
+				groupName, playables := m.getCurrentGroup()
+				if groupName != "" {
+					// Ensure the restored x coordinate is within bounds
+					if m.groupX[groupName] >= len(playables) {
+						m.groupX[groupName] = 0
+					}
+					m.selected.x = m.groupX[groupName]
+				}
+			}
 			m.mu.Unlock()
 
 		case "G":
 			m.mu.Lock()
-			m.selected.y = len(m.groupNames) - 1
-			m.selected.x = m.groupX[m.groupNames[m.selected.y]]
+			if len(m.groupNames) > 0 {
+				m.selected.y = len(m.groupNames) - 1
+				groupName, playables := m.getCurrentGroup()
+				if groupName != "" {
+					// Ensure the restored x coordinate is within bounds
+					if m.groupX[groupName] >= len(playables) {
+						m.groupX[groupName] = 0
+					}
+					m.selected.x = m.groupX[groupName]
+				}
+			}
 			m.mu.Unlock()
 
 		case " ":
@@ -186,13 +367,18 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					p.ClearStep()
 				}
 				m.mu.Lock()
-				p := m.groups[m.groupNames[m.selected.y]][m.selected.x]
-				playing := m.selected
-				m.playing = &playing
-				m.mu.Unlock()
-				ctx, stop := context.WithCancel(context.Background())
-				m.stop = stop
-				m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
+				groupName, playables := m.getCurrentGroup()
+				if groupName != "" && len(playables) > 0 && m.selected.x < len(playables) {
+					p := playables[m.selected.x]
+					playing := m.selected
+					m.playing = &playing
+					m.mu.Unlock()
+					ctx, stop := context.WithCancel(context.Background())
+					m.stop = stop
+					m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
+				} else {
+					m.mu.Unlock()
+				}
 			case m.device.Playing():
 				m.stop()
 			}
@@ -203,6 +389,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) View() string {
+	// Ensure selection coordinates are valid before rendering
+	m.validateSelection()
 
 	var header string
 	var groupNames []string
