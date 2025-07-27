@@ -35,6 +35,10 @@ type Device struct {
 
 	sendTrackF func(midi.Message) error
 	sendSyncF  func(midi.Message) error
+
+	// MIDI input for follower mode
+	syncIn     drivers.In
+	syncInPort string
 }
 
 // New creates a new Device
@@ -63,6 +67,28 @@ func New(outputName string) (*Device, error) {
 		return nil, fmt.Errorf("failed to create MIDI sender: %w", err)
 	}
 
+	return &Device{
+		state:    newState(),
+		playCh:   make(chan struct{}),
+		stopCh:   make(chan struct{}),
+		clockCh:  make(chan struct{}),
+		errorsCh: make(chan error, 100),
+		clockSub: sub{
+			ch: make(map[string]chan struct{}),
+		},
+		sendTrackF: sendTrackF,
+		sendSyncF:  nil, // No sync output for regular devices
+	}, nil
+}
+
+// NewWithSyncOutput creates a new Device with MIDI sync output capability
+// This is used when sync mode is "leader"
+func NewWithSyncOutput(outputName string) (*Device, error) {
+	device, err := New(outputName)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create dedicated virtual output for sync messages
 	syncOut, err := drivers.Get().(*rtmididrv.Driver).OpenVirtualOut(syncDeviceName)
 	if err != nil {
@@ -74,18 +100,25 @@ func New(outputName string) (*Device, error) {
 		return nil, fmt.Errorf("failed to create MIDI sync sender: %w", err)
 	}
 
-	return &Device{
-		state:    newState(),
-		playCh:   make(chan struct{}),
-		stopCh:   make(chan struct{}),
-		clockCh:  make(chan struct{}),
-		errorsCh: make(chan error, 100),
-		clockSub: sub{
-			ch: make(map[string]chan struct{}),
-		},
-		sendTrackF: sendTrackF,
-		sendSyncF:  sendSyncF,
-	}, nil
+	device.sendSyncF = sendSyncF
+	return device, nil
+}
+
+// NewWithSyncInput creates a new Device with MIDI sync input capability
+func NewWithSyncInput(outputName string) (*Device, error) {
+	device, err := New(outputName)
+	if err != nil {
+		return nil, err
+	}
+
+	syncIn, err := drivers.InByName("beefdown-sync")
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to MIDI input 'beefdown-sync': %w", err)
+	}
+	device.syncIn = syncIn
+	device.syncInPort = "beefdown-sync"
+
+	return device, nil
 }
 
 // ListOutputs returns a list of available MIDI output ports
@@ -103,6 +136,21 @@ func ListOutputs() ([]string, error) {
 	return outputNames, nil
 }
 
+// ListInputs returns a list of available MIDI input ports
+func ListInputs() ([]string, error) {
+	ins, err := drivers.Ins()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list MIDI inputs: %w", err)
+	}
+
+	var inputNames []string
+	for _, in := range ins {
+		inputNames = append(inputNames, in.String())
+	}
+
+	return inputNames, nil
+}
+
 func (d *Device) sendTrack(mm midi.Message) {
 	err := d.sendTrackF(mm)
 	if err != nil {
@@ -116,6 +164,11 @@ func (d *Device) sendTrack(mm midi.Message) {
 }
 
 func (d *Device) sendSync(mm midi.Message) {
+	if d.sendSyncF == nil {
+		// No sync output configured, ignore the message
+		return
+	}
+
 	err := d.sendSyncF(mm)
 	if err != nil {
 		select {
@@ -161,6 +214,58 @@ func (d *Device) silence() {
 	}
 }
 
+// handleSyncMessage processes incoming MIDI sync messages for follower mode
+func (d *Device) handleSyncMessage(msg midi.Message) {
+	switch {
+	case msg.Is(midi.StartMsg):
+
+		// Start message received - trigger clock events
+		if d.state.stopped() {
+			d.state.play()
+			d.playCh <- struct{}{}
+		}
+	case msg.Is(midi.StopMsg):
+
+		// Stop message received - stop playback
+		if d.state.playing() {
+			d.state.stop()
+			d.stopCh <- struct{}{}
+			d.silence()
+		}
+	case msg.Is(midi.TimingClockMsg):
+
+		// Timing clock message received - trigger clock events
+		if d.state.playing() {
+			d.clockSub.pub()
+			d.clockCh <- struct{}{}
+		}
+	}
+}
+
+// startSyncListener starts listening for MIDI sync messages in follower mode
+func (d *Device) startSyncListener(ctx context.Context) error {
+	if d.syncIn == nil {
+		return fmt.Errorf("no MIDI input configured for sync listening")
+	}
+
+	// Use the gomidi ListenTo API to handle MIDI input
+	stop, err := midi.ListenTo(d.syncIn, func(msg midi.Message, timestampms int32) {
+		// Handle sync messages
+		d.handleSyncMessage(msg)
+	}, midi.UseTimeCode())
+	if err != nil {
+		return fmt.Errorf("failed to start MIDI listener: %w", err)
+	}
+
+	// Start a goroutine to handle cleanup when context is cancelled
+	go func() {
+		<-ctx.Done()
+		stop()
+	}()
+
+	return nil
+}
+
 func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool, sync string) {
 
 	if !d.state.stopped() {
@@ -183,10 +288,11 @@ func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool,
 func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 
 	d.beat = time.Duration(float64(time.Minute) / d.bpm)
-	d.ticker = time.NewTicker(d.beat / 24.0)
 
 	defer func() {
-		d.ticker.Stop()
+		if d.ticker != nil {
+			d.ticker.Stop()
+		}
 		d.state.stop()
 		d.stopCh <- struct{}{}
 		if d.sync == "leader" {
@@ -195,27 +301,62 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 		d.silence()
 	}()
 
-	d.state.play()
-	d.playCh <- struct{}{}
-	if d.sync == "leader" {
+	// Only set state to playing immediately if not in follower mode
+	// In follower mode, we wait for MIDI Start message
+	if d.sync != "follower" {
+		d.state.play()
+		d.playCh <- struct{}{}
+	}
+
+	// Handle different sync modes
+	switch d.sync {
+	case "leader":
+		// Leader mode: use internal ticker and send sync messages
+		d.ticker = time.NewTicker(d.beat / 24.0)
 		d.sendSync(midi.Start())
+	case "follower":
+		// Follower mode: listen for external sync messages
+		// Don't set state to playing yet - wait for MIDI Start message
+		if err := d.startSyncListener(ctx); err != nil {
+			select {
+			case d.errorsCh <- err:
+				// Error sent successfully
+			default:
+				// Channel is full, drop the error
+			}
+			return
+		}
+	default:
+		// No sync mode: use internal ticker only
+		d.ticker = time.NewTicker(d.beat / 24.0)
 	}
 
 	done := make(chan struct{})
 	go d.playRecursive(ctx, a, &done)
 
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-d.ticker.C:
-			d.clockSub.pub()
-			d.clockCh <- struct{}{}
-			if d.sync == "leader" {
-				d.sendSync(midi.TimingClock())
+		if d.sync == "follower" {
+			// In follower mode, only listen for context cancellation and done
+			select {
+			case <-ctx.Done():
+				return
+			case <-done:
+				return
 			}
-		case <-done:
-			return
+		} else {
+			// In leader or no-sync mode, listen for ticker events
+			select {
+			case <-ctx.Done():
+				return
+			case <-d.ticker.C:
+				d.clockSub.pub()
+				d.clockCh <- struct{}{}
+				if d.sync == "leader" {
+					d.sendSync(midi.TimingClock())
+				}
+			case <-done:
+				return
+			}
 		}
 	}
 }
