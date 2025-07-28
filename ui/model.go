@@ -281,7 +281,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 
 		case "ctrl+c", "q":
-			if m.device.Playing() {
+			if m.device.Playing() && m.device.CancelF != nil {
 				m.device.CancelF()
 			}
 			// Clean up device context
