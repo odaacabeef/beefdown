@@ -19,19 +19,19 @@ func Start(sequencePath string, midiOutput string) error {
 }
 
 func initialModel(sequencePath string, midiOutput string) (*model, error) {
-	// First, load the sequence to check if it uses follower mode
-	tempModel := model{
+
+	m := model{
 		viewport: &viewport{},
 	}
 
-	err := tempModel.loadSequence(sequencePath)
+	err := m.loadSequence(sequencePath)
 	if err != nil {
 		return nil, err
 	}
 
 	// Check the sync mode and create appropriate device
 	var d *device.Device
-	switch tempModel.sequence.Sync {
+	switch m.sequence.Sync {
 	case "follower":
 		// Use device with sync input capability
 		d, err = device.NewWithSyncInput(midiOutput)
@@ -52,15 +52,8 @@ func initialModel(sequencePath string, midiOutput string) (*model, error) {
 		}
 	}
 
-	m := model{
-		device:   d,
-		viewport: &viewport{},
-	}
-
-	err = m.loadSequence(sequencePath)
-	if err != nil {
-		return nil, err
-	}
+	m.device = d
+	m.toggleMIDISyncListening()
 
 	return &m, nil
 }

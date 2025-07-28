@@ -121,6 +121,31 @@ func NewWithSyncInput(outputName string) (*Device, error) {
 	return device, nil
 }
 
+// StartSyncListener starts listening for MIDI sync messages
+// This should be called immediately for follower mode devices
+func (d *Device) StartSyncListener(ctx context.Context) error {
+	if d.syncIn == nil {
+		return fmt.Errorf("no MIDI input configured for sync listening")
+	}
+
+	// Use the gomidi ListenTo API to handle MIDI input
+	stop, err := midi.ListenTo(d.syncIn, func(msg midi.Message, timestampms int32) {
+		// Handle sync messages
+		d.handleSyncMessage(msg)
+	}, midi.UseTimeCode())
+	if err != nil {
+		return fmt.Errorf("failed to start MIDI listener: %w", err)
+	}
+
+	// Start a goroutine to handle cleanup when context is cancelled
+	go func() {
+		<-ctx.Done()
+		stop()
+	}()
+
+	return nil
+}
+
 // ListOutputs returns a list of available MIDI output ports
 func ListOutputs() ([]string, error) {
 	outs, err := drivers.Outs()
@@ -242,30 +267,6 @@ func (d *Device) handleSyncMessage(msg midi.Message) {
 	}
 }
 
-// startSyncListener starts listening for MIDI sync messages in follower mode
-func (d *Device) startSyncListener(ctx context.Context) error {
-	if d.syncIn == nil {
-		return fmt.Errorf("no MIDI input configured for sync listening")
-	}
-
-	// Use the gomidi ListenTo API to handle MIDI input
-	stop, err := midi.ListenTo(d.syncIn, func(msg midi.Message, timestampms int32) {
-		// Handle sync messages
-		d.handleSyncMessage(msg)
-	}, midi.UseTimeCode())
-	if err != nil {
-		return fmt.Errorf("failed to start MIDI listener: %w", err)
-	}
-
-	// Start a goroutine to handle cleanup when context is cancelled
-	go func() {
-		<-ctx.Done()
-		stop()
-	}()
-
-	return nil
-}
-
 func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool, sync string) {
 
 	if !d.state.stopped() {
@@ -315,17 +316,9 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 		d.ticker = time.NewTicker(d.beat / 24.0)
 		d.sendSync(midi.Start())
 	case "follower":
-		// Follower mode: listen for external sync messages
+		// Follower mode: MIDI listener is already started during initialization
 		// Don't set state to playing yet - wait for MIDI Start message
-		if err := d.startSyncListener(ctx); err != nil {
-			select {
-			case d.errorsCh <- err:
-				// Error sent successfully
-			default:
-				// Channel is full, drop the error
-			}
-			return
-		}
+		// No additional setup needed here
 	default:
 		// No sync mode: use internal ticker only
 		d.ticker = time.NewTicker(d.beat / 24.0)

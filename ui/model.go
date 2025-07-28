@@ -78,6 +78,20 @@ groupPlayables:
 	return nil
 }
 
+// TODO:: call on reload; don't re-listen if already listening, stop listening
+// if sync setting changed
+func (m *model) toggleMIDISyncListening() error {
+	// For follower mode, start listening for MIDI sync messages immediately
+	if m.sequence.Sync == "follower" {
+		// Create a background context for the MIDI listener
+		// This will be cancelled when the application exits
+		ctx := context.Background()
+		err := m.device.StartSyncListener(ctx)
+		return err
+	}
+	return nil
+}
+
 // restoreSelection attempts to restore the previous selection state after a reload,
 // adjusting coordinates to be within valid bounds if necessary
 func (m *model) restoreSelection(oldSelected coordinates, oldGroupX map[string]int, oldGroupNames []string) {
@@ -361,6 +375,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mu.Unlock()
 
 		case " ":
+			if m.sequence.Sync == "follower" {
+				break
+			}
 			switch {
 			case m.device.Stopped():
 				for _, p := range m.sequence.Playable {
@@ -392,14 +409,18 @@ func (m *model) View() string {
 	// Ensure selection coordinates are valid before rendering
 	m.validateSelection()
 
-	var header string
 	var groupNames []string
 	var groupX []int
 	var groupPlayables [][]string
 
 	st := style(lipgloss.NewStyle())
 
-	header = st.sequence().Render(fmt.Sprintf("%s; bpm: %f; loop: %v; sync: %s", m.sequence.Path, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync))
+	header := fmt.Sprintf("%s;", m.sequence.Path)
+	if m.sequence.Sync != "follower" {
+		header += fmt.Sprintf(" bpm: %f; loop: %v;", m.sequence.BPM, m.sequence.Loop)
+	}
+	header += fmt.Sprintf(" sync: %s", m.sequence.Sync)
+	header = st.sequence().Render(header)
 
 	t := "-"
 	m.playMu.RLock()
