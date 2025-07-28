@@ -26,11 +26,14 @@ type Device struct {
 
 	ticker *time.Ticker
 
-	playCh   chan struct{}
-	stopCh   chan struct{}
 	clockCh  chan struct{}
 	errorsCh chan error
 
+	ctx     context.Context
+	CancelF context.CancelFunc
+
+	PlaySub  sub
+	StopSub  sub
 	clockSub sub
 
 	sendTrackF func(midi.Message) error
@@ -39,6 +42,9 @@ type Device struct {
 	// MIDI input for follower mode
 	syncIn     drivers.In
 	syncInPort string
+
+	// Current playback parameters
+	currentPlayable any
 }
 
 // New creates a new Device
@@ -69,10 +75,14 @@ func New(outputName string) (*Device, error) {
 
 	return &Device{
 		state:    newState(),
-		playCh:   make(chan struct{}),
-		stopCh:   make(chan struct{}),
 		clockCh:  make(chan struct{}),
 		errorsCh: make(chan error, 100),
+		PlaySub: sub{
+			ch: make(map[string]chan struct{}),
+		},
+		StopSub: sub{
+			ch: make(map[string]chan struct{}),
+		},
 		clockSub: sub{
 			ch: make(map[string]chan struct{}),
 		},
@@ -146,6 +156,47 @@ func (d *Device) StartSyncListener(ctx context.Context) error {
 	return nil
 }
 
+// StartChannelListeners starts listening for play/stop messages on the channels
+func (d *Device) StartChannelListeners() {
+
+	playSub := make(chan struct{})
+	d.PlaySub.Sub("device", playSub)
+
+	// Start a goroutine to listen for play messages
+	go func() {
+		for {
+			<-playSub
+			d.StartPlayback()
+		}
+	}()
+
+	stopSub := make(chan struct{})
+	d.StopSub.Sub("device", stopSub)
+
+	// Start a goroutine to listen for stop messages
+	go func() {
+		for {
+			<-stopSub
+			if d.state.playing() {
+				d.state.stop()
+				d.silence()
+				d.CancelF()
+			}
+		}
+	}()
+}
+
+func (d *Device) SetSequenceConfig(bpm float64, loop bool, sync string) {
+	d.bpm = bpm
+	d.loop = loop
+	d.sync = sync
+}
+
+// UpdateCurrentPlayable updates the current playable for the device
+func (d *Device) UpdateCurrentPlayable(playable any) {
+	d.currentPlayable = playable
+}
+
 // ListOutputs returns a list of available MIDI output ports
 func ListOutputs() ([]string, error) {
 	outs, err := drivers.Outs()
@@ -205,14 +256,6 @@ func (d *Device) sendSync(mm midi.Message) {
 	}
 }
 
-func (d *Device) PlayCh() chan struct{} {
-	return d.playCh
-}
-
-func (d *Device) StopCh() chan struct{} {
-	return d.stopCh
-}
-
 func (d *Device) ClockCh() chan struct{} {
 	return d.clockCh
 }
@@ -247,41 +290,43 @@ func (d *Device) handleSyncMessage(msg midi.Message) {
 		// Start message received - trigger clock events
 		if d.state.stopped() {
 			d.state.play()
-			d.playCh <- struct{}{}
+			d.PlaySub.Pub()
 		}
 	case msg.Is(midi.StopMsg):
 
 		// Stop message received - stop playback
 		if d.state.playing() {
 			d.state.stop()
-			d.stopCh <- struct{}{}
+			d.StopSub.Pub()
 			d.silence()
 		}
 	case msg.Is(midi.TimingClockMsg):
 
 		// Timing clock message received - trigger clock events
 		if d.state.playing() {
-			d.clockSub.pub()
+			d.clockSub.Pub()
+
+			// TODO: make ui use clockSub instead and get rid of clockCh
 			d.clockCh <- struct{}{}
 		}
 	}
 }
 
-func (d *Device) Play(ctx context.Context, playable any, bpm float64, loop bool, sync string) {
-
+// StartPlayback starts playback with the currently selected playable
+func (d *Device) StartPlayback() {
 	if !d.state.stopped() {
 		return
 	}
 
-	d.bpm = bpm
-	d.loop = loop
-	d.sync = sync
+	ctx, cf := context.WithCancel(context.Background())
+	d.ctx = ctx
+	d.CancelF = cf
 
-	switch playable := playable.(type) {
+	switch playable := d.currentPlayable.(type) {
 	case *sequence.Arrangement:
-		go d.playPrimary(ctx, playable)
+		go d.playPrimary(d.ctx, playable)
 	case *sequence.Part:
-		go d.playPrimary(ctx, playable.Arrangement())
+		go d.playPrimary(d.ctx, playable.Arrangement())
 	}
 }
 
@@ -295,19 +340,14 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 			d.ticker.Stop()
 		}
 		d.state.stop()
-		d.stopCh <- struct{}{}
+		d.StopSub.Pub()
 		if d.sync == "leader" {
 			d.sendSync(midi.Stop())
 		}
 		d.silence()
 	}()
 
-	// Only set state to playing immediately if not in follower mode
-	// In follower mode, we wait for MIDI Start message
-	if d.sync != "follower" {
-		d.state.play()
-		d.playCh <- struct{}{}
-	}
+	d.state.play()
 
 	// Handle different sync modes
 	switch d.sync {
@@ -342,7 +382,7 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 			case <-ctx.Done():
 				return
 			case <-d.ticker.C:
-				d.clockSub.pub()
+				d.clockSub.Pub()
 				d.clockCh <- struct{}{}
 				if d.sync == "leader" {
 					d.sendSync(midi.TimingClock())
@@ -360,9 +400,9 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, don
 	var clockIdx int64
 
 	clockSub := make(chan struct{})
-	d.clockSub.sub(a.Name(), clockSub)
+	d.clockSub.Sub(a.Name(), clockSub)
 
-	defer d.clockSub.unsub(a.Name())
+	defer d.clockSub.Unsub(a.Name())
 
 	if done != nil {
 		defer close(*done)

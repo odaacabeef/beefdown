@@ -29,10 +29,15 @@ type model struct {
 
 	viewport *viewport
 
-	stop context.CancelFunc
-
 	playStart *time.Time
 	playMu    sync.RWMutex // Mutex for protecting playStart
+
+	playCh chan struct{}
+	stopCh chan struct{}
+
+	// Context for managing device channel listeners
+	deviceCtx    context.Context
+	deviceCancel context.CancelFunc
 
 	errs  []error
 	errMu sync.RWMutex // Mutex for protecting errs
@@ -74,6 +79,10 @@ groupPlayables:
 	// Reset viewport state to ensure current selection is visible
 	m.viewport.xStart = []int{}
 	m.viewport.yStart = 0
+
+	if m.device != nil {
+		m.device.SetSequenceConfig(m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
+	}
 
 	return nil
 }
@@ -218,7 +227,7 @@ func (m *model) getCurrentGroup() (string, []sequence.Playable) {
 
 func (m *model) Init() tea.Cmd {
 	return tea.Batch(
-		listenForDevicePlay(m.device.PlayCh()),
+		listenForDevicePlay(m.playCh),
 		listenForDeviceClock(m.device.ClockCh()),
 		listenForDeviceErrors(m.device.ErrorsCh()),
 	)
@@ -228,20 +237,31 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case devicePlay:
-		now := time.Now()
-		m.playMu.Lock()
-		m.playStart = &now
-		m.playMu.Unlock()
-		return m, listenForDeviceStop(m.device.StopCh())
+		m.mu.Lock()
+		groupName, playables := m.getCurrentGroup()
+		if groupName != "" && len(playables) > 0 && m.selected.x < len(playables) {
+			now := time.Now()
+			m.playMu.Lock()
+			m.playStart = &now
+			m.playMu.Unlock()
+			playing := m.selected
+			m.playing = &playing
+		}
+		m.mu.Unlock()
+		return m, listenForDeviceStop(m.stopCh)
 
 	case deviceStop:
+		// Device stopped playing - update UI state
+		for _, p := range m.sequence.Playable {
+			p.ClearStep()
+		}
 		m.mu.Lock()
 		m.playing = nil
 		m.mu.Unlock()
 		m.playMu.Lock()
 		m.playStart = nil
 		m.playMu.Unlock()
-		return m, listenForDevicePlay(m.device.PlayCh())
+		return m, listenForDevicePlay(m.playCh)
 
 	case deviceClock:
 		return m, listenForDeviceClock(m.device.ClockCh())
@@ -261,13 +281,21 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "ctrl+c", "q":
 			if m.device.Playing() {
-				m.stop()
+				m.device.CancelF()
+			}
+			// Clean up device context
+			if m.deviceCancel != nil {
+				m.deviceCancel()
 			}
 			return m, tea.Quit
 
 		case "R":
 			if m.device.Playing() {
-				m.stop()
+				m.device.CancelF()
+			}
+			// Clean up existing device context
+			if m.deviceCancel != nil {
+				m.deviceCancel()
 			}
 			err := m.loadSequence(m.sequence.Path)
 
@@ -284,6 +312,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if groupName != "" && len(playables) > 0 && m.selected.x > 0 {
 				m.selected.x--
 				m.groupX[groupName] = m.selected.x
+				// Update the device's current playable
+				if m.selected.x < len(playables) {
+					m.device.UpdateCurrentPlayable(playables[m.selected.x])
+				}
 			}
 			m.mu.Unlock()
 
@@ -293,6 +325,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if groupName != "" && m.selected.x < len(playables)-1 {
 				m.selected.x++
 				m.groupX[groupName] = m.selected.x
+				// Update the device's current playable
+				if m.selected.x < len(playables) {
+					m.device.UpdateCurrentPlayable(playables[m.selected.x])
+				}
 			}
 			m.mu.Unlock()
 
@@ -307,6 +343,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.groupX[groupName] = 0
 					}
 					m.selected.x = m.groupX[groupName]
+					// Update the device's current playable
+					if m.selected.x < len(playables) {
+						m.device.UpdateCurrentPlayable(playables[m.selected.x])
+					}
 				}
 			}
 			m.mu.Unlock()
@@ -322,6 +362,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.groupX[groupName] = 0
 					}
 					m.selected.x = m.groupX[groupName]
+					// Update the device's current playable
+					if m.selected.x < len(playables) {
+						m.device.UpdateCurrentPlayable(playables[m.selected.x])
+					}
 				}
 			}
 			m.mu.Unlock()
@@ -332,6 +376,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if groupName != "" && len(playables) > 0 {
 				m.selected.x = 0
 				m.groupX[groupName] = m.selected.x
+				// Update the device's current playable
+				if m.selected.x < len(playables) {
+					m.device.UpdateCurrentPlayable(playables[m.selected.x])
+				}
 			}
 			m.mu.Unlock()
 
@@ -341,6 +389,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if groupName != "" && len(playables) > 0 {
 				m.selected.x = len(playables) - 1
 				m.groupX[groupName] = m.selected.x
+				// Update the device's current playable
+				if m.selected.x < len(playables) {
+					m.device.UpdateCurrentPlayable(playables[m.selected.x])
+				}
 			}
 			m.mu.Unlock()
 
@@ -355,6 +407,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.groupX[groupName] = 0
 					}
 					m.selected.x = m.groupX[groupName]
+					// Update the device's current playable
+					if m.selected.x < len(playables) {
+						m.device.UpdateCurrentPlayable(playables[m.selected.x])
+					}
 				}
 			}
 			m.mu.Unlock()
@@ -370,6 +426,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.groupX[groupName] = 0
 					}
 					m.selected.x = m.groupX[groupName]
+					// Update the device's current playable
+					if m.selected.x < len(playables) {
+						m.device.UpdateCurrentPlayable(playables[m.selected.x])
+					}
 				}
 			}
 			m.mu.Unlock()
@@ -378,35 +438,18 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.sequence.Sync == "follower" {
 				break
 			}
-			m.togglePlayback()
+			// Toggle playback state
+			if m.device.Stopped() {
+				// Device is stopped, start playback
+				m.device.PlaySub.Pub()
+			} else {
+				// Device is playing or in unknown state, stop it
+				m.device.StopSub.Pub()
+			}
 		}
 	}
 
 	return m, nil
-}
-
-func (m *model) togglePlayback() {
-	switch {
-	case m.device.Stopped():
-		for _, p := range m.sequence.Playable {
-			p.ClearStep()
-		}
-		m.mu.Lock()
-		groupName, playables := m.getCurrentGroup()
-		if groupName != "" && len(playables) > 0 && m.selected.x < len(playables) {
-			p := playables[m.selected.x]
-			playing := m.selected
-			m.playing = &playing
-			m.mu.Unlock()
-			ctx, stop := context.WithCancel(context.Background())
-			m.stop = stop
-			m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
-		} else {
-			m.mu.Unlock()
-		}
-	case m.device.Playing():
-		m.stop()
-	}
 }
 
 func (m *model) View() string {
