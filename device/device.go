@@ -348,7 +348,6 @@ func (d *Device) playPrimary(a *sequence.Arrangement) {
 		d.sendSync(midi.Start())
 	case "follower":
 		// Follower mode: MIDI listener is already started during initialization
-		// Don't set state to playing yet - wait for MIDI Start message
 		// No additional setup needed here
 	default:
 		// No sync mode: use internal ticker only
@@ -361,6 +360,7 @@ func (d *Device) playPrimary(a *sequence.Arrangement) {
 	for {
 		if d.sync == "follower" {
 			// In follower mode, only listen for context cancellation and done
+			// d.ClockSub.Pub() called in handleSyncMessage
 			select {
 			case <-d.ctx.Done():
 				return
