@@ -119,12 +119,12 @@ func NewWithSyncInput(outputName string) (*Device, error) {
 		return nil, err
 	}
 
-	syncIn, err := drivers.InByName("beefdown-sync")
+	syncIn, err := drivers.InByName(syncDeviceName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to MIDI input 'beefdown-sync': %w", err)
+		return nil, fmt.Errorf("failed to connect to MIDI input '%s': %w", syncDeviceName, err)
 	}
 	device.syncIn = syncIn
-	device.syncInPort = "beefdown-sync"
+	device.syncInPort = syncDeviceName
 
 	return device, nil
 }
