@@ -378,31 +378,35 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.sequence.Sync == "follower" {
 				break
 			}
-			switch {
-			case m.device.Stopped():
-				for _, p := range m.sequence.Playable {
-					p.ClearStep()
-				}
-				m.mu.Lock()
-				groupName, playables := m.getCurrentGroup()
-				if groupName != "" && len(playables) > 0 && m.selected.x < len(playables) {
-					p := playables[m.selected.x]
-					playing := m.selected
-					m.playing = &playing
-					m.mu.Unlock()
-					ctx, stop := context.WithCancel(context.Background())
-					m.stop = stop
-					m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
-				} else {
-					m.mu.Unlock()
-				}
-			case m.device.Playing():
-				m.stop()
-			}
+			m.togglePlayback()
 		}
 	}
 
 	return m, nil
+}
+
+func (m *model) togglePlayback() {
+	switch {
+	case m.device.Stopped():
+		for _, p := range m.sequence.Playable {
+			p.ClearStep()
+		}
+		m.mu.Lock()
+		groupName, playables := m.getCurrentGroup()
+		if groupName != "" && len(playables) > 0 && m.selected.x < len(playables) {
+			p := playables[m.selected.x]
+			playing := m.selected
+			m.playing = &playing
+			m.mu.Unlock()
+			ctx, stop := context.WithCancel(context.Background())
+			m.stop = stop
+			m.device.Play(ctx, p, m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
+		} else {
+			m.mu.Unlock()
+		}
+	case m.device.Playing():
+		m.stop()
+	}
 }
 
 func (m *model) View() string {
