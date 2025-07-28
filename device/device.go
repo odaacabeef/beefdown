@@ -26,15 +26,14 @@ type Device struct {
 
 	ticker *time.Ticker
 
-	clockCh  chan struct{}
-	errorsCh chan error
-
 	ctx     context.Context
 	CancelF context.CancelFunc
 
 	PlaySub  sub
 	StopSub  sub
-	clockSub sub
+	ClockSub sub
+
+	errorsCh chan error
 
 	sendTrackF func(midi.Message) error
 	sendSyncF  func(midi.Message) error
@@ -75,7 +74,6 @@ func New(outputName string) (*Device, error) {
 
 	return &Device{
 		state:    newState(),
-		clockCh:  make(chan struct{}),
 		errorsCh: make(chan error, 100),
 		PlaySub: sub{
 			ch: make(map[string]chan struct{}),
@@ -83,7 +81,7 @@ func New(outputName string) (*Device, error) {
 		StopSub: sub{
 			ch: make(map[string]chan struct{}),
 		},
-		clockSub: sub{
+		ClockSub: sub{
 			ch: make(map[string]chan struct{}),
 		},
 		sendTrackF: sendTrackF,
@@ -256,10 +254,6 @@ func (d *Device) sendSync(mm midi.Message) {
 	}
 }
 
-func (d *Device) ClockCh() chan struct{} {
-	return d.clockCh
-}
-
 func (d *Device) ErrorsCh() chan error {
 	return d.errorsCh
 }
@@ -304,10 +298,7 @@ func (d *Device) handleSyncMessage(msg midi.Message) {
 
 		// Timing clock message received - trigger clock events
 		if d.state.playing() {
-			d.clockSub.Pub()
-
-			// TODO: make ui use clockSub instead and get rid of clockCh
-			d.clockCh <- struct{}{}
+			d.ClockSub.Pub()
 		}
 	}
 }
@@ -382,8 +373,7 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 			case <-ctx.Done():
 				return
 			case <-d.ticker.C:
-				d.clockSub.Pub()
-				d.clockCh <- struct{}{}
+				d.ClockSub.Pub()
 				if d.sync == "leader" {
 					d.sendSync(midi.TimingClock())
 				}
@@ -400,9 +390,9 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, don
 	var clockIdx int64
 
 	clockSub := make(chan struct{})
-	d.clockSub.Sub(a.Name(), clockSub)
+	d.ClockSub.Sub(a.Name(), clockSub)
 
-	defer d.clockSub.Unsub(a.Name())
+	defer d.ClockSub.Unsub(a.Name())
 
 	if done != nil {
 		defer close(*done)

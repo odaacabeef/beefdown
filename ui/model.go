@@ -32,8 +32,9 @@ type model struct {
 	playStart *time.Time
 	playMu    sync.RWMutex // Mutex for protecting playStart
 
-	playCh chan struct{}
-	stopCh chan struct{}
+	playCh  chan struct{}
+	stopCh  chan struct{}
+	clockCh chan struct{}
 
 	// Context for managing device channel listeners
 	deviceCtx    context.Context
@@ -228,7 +229,7 @@ func (m *model) getCurrentGroup() (string, []sequence.Playable) {
 func (m *model) Init() tea.Cmd {
 	return tea.Batch(
 		listenForDevicePlay(m.playCh),
-		listenForDeviceClock(m.device.ClockCh()),
+		listenForDeviceClock(m.clockCh),
 		listenForDeviceErrors(m.device.ErrorsCh()),
 	)
 }
@@ -264,7 +265,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, listenForDevicePlay(m.playCh)
 
 	case deviceClock:
-		return m, listenForDeviceClock(m.device.ClockCh())
+		return m, listenForDeviceClock(m.clockCh)
 
 	case deviceError:
 		m.errMu.Lock()

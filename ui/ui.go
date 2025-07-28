@@ -24,6 +24,7 @@ func initialModel(sequencePath string, midiOutput string) (*model, error) {
 		viewport: &viewport{},
 		playCh:   make(chan struct{}),
 		stopCh:   make(chan struct{}),
+		clockCh:  make(chan struct{}),
 	}
 
 	err := m.loadSequence(sequencePath)
@@ -58,6 +59,7 @@ func initialModel(sequencePath string, midiOutput string) (*model, error) {
 	m.device.StartChannelListeners()
 	m.device.PlaySub.Sub("ui", m.playCh)
 	m.device.StopSub.Sub("ui", m.stopCh)
+	m.device.ClockSub.Sub("ui", m.clockCh)
 	m.device.SetSequenceConfig(m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
 
 	m.toggleMIDISyncListening()
