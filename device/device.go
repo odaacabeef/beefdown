@@ -315,14 +315,14 @@ func (d *Device) StartPlayback() {
 
 	switch playable := d.currentPlayable.(type) {
 	case *sequence.Arrangement:
-		go d.playPrimary(d.ctx, playable)
+		go d.playPrimary(playable)
 	case *sequence.Part:
-		go d.playPrimary(d.ctx, playable.Arrangement())
+		go d.playPrimary(playable.Arrangement())
 	}
 }
 
 // playPrimary is intended for top-level arrangements
-func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
+func (d *Device) playPrimary(a *sequence.Arrangement) {
 
 	d.beat = time.Duration(float64(time.Minute) / d.bpm)
 
@@ -356,13 +356,13 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 	}
 
 	done := make(chan struct{})
-	go d.playRecursive(ctx, a, &done)
+	go d.playRecursive(a, &done)
 
 	for {
 		if d.sync == "follower" {
 			// In follower mode, only listen for context cancellation and done
 			select {
-			case <-ctx.Done():
+			case <-d.ctx.Done():
 				return
 			case <-done:
 				return
@@ -370,7 +370,7 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 		} else {
 			// In leader or no-sync mode, listen for ticker events
 			select {
-			case <-ctx.Done():
+			case <-d.ctx.Done():
 				return
 			case <-d.ticker.C:
 				d.ClockSub.Pub()
@@ -386,7 +386,7 @@ func (d *Device) playPrimary(ctx context.Context, a *sequence.Arrangement) {
 
 // playRecursive can be called for a top-level (primary) arrangement or
 // recursively for arrangements nested within arrangements.
-func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, done *chan struct{}) {
+func (d *Device) playRecursive(a *sequence.Arrangement, done *chan struct{}) {
 	var clockIdx int64
 
 	clockSub := make(chan struct{})
@@ -401,13 +401,13 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, don
 	for {
 		for aidx, stepPlayables := range a.Playables {
 			select {
-			case <-ctx.Done():
+			case <-d.ctx.Done():
 				return
 			default:
 				a.UpdateStep(aidx)
 			}
 			select {
-			case <-ctx.Done():
+			case <-d.ctx.Done():
 				return
 			default:
 				var wg sync.WaitGroup
@@ -424,7 +424,7 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, don
 							defer wg.Done()
 							for sidx, sm := range part.StepMIDI {
 								select {
-								case <-ctx.Done():
+								case <-d.ctx.Done():
 									return
 								case <-t:
 									part.UpdateStep(sidx)
@@ -440,7 +440,7 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, don
 					case *sequence.Arrangement:
 						go func() {
 							defer wg.Done()
-							d.playRecursive(ctx, p, nil)
+							d.playRecursive(p, nil)
 						}()
 					}
 				}
@@ -448,7 +448,7 @@ func (d *Device) playRecursive(ctx context.Context, a *sequence.Arrangement, don
 					stepCounts := make([]int64, len(stepParts))
 					for {
 						select {
-						case <-ctx.Done():
+						case <-d.ctx.Done():
 							return
 						case <-stepDone:
 							return
