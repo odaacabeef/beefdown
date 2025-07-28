@@ -283,16 +283,13 @@ func (d *Device) handleSyncMessage(msg midi.Message) {
 
 		// Start message received - trigger clock events
 		if d.state.stopped() {
-			d.state.play()
 			d.PlaySub.Pub()
 		}
 	case msg.Is(midi.StopMsg):
 
 		// Stop message received - stop playback
 		if d.state.playing() {
-			d.state.stop()
 			d.StopSub.Pub()
-			d.silence()
 		}
 	case msg.Is(midi.TimingClockMsg):
 
