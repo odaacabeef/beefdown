@@ -43,7 +43,7 @@ type Device struct {
 	syncInPort string
 
 	// Current playback parameters
-	currentPlayable any
+	currentPlayable sequence.Playable
 }
 
 // New creates a new Device
@@ -191,7 +191,7 @@ func (d *Device) SetSequenceConfig(bpm float64, loop bool, sync string) {
 }
 
 // UpdateCurrentPlayable updates the current playable for the device
-func (d *Device) UpdateCurrentPlayable(playable any) {
+func (d *Device) UpdateCurrentPlayable(playable sequence.Playable) {
 	d.currentPlayable = playable
 }
 
