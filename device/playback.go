@@ -11,7 +11,7 @@ import (
 )
 
 // StartChannelListeners starts listening for play/stop messages on the channels
-func (d *Device) StartChannelListeners() {
+func (d *Device) StartPlaybackListeners() {
 
 	playSub := make(chan struct{})
 	d.PlaySub.Sub("device", playSub)

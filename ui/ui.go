@@ -56,7 +56,7 @@ func initialModel(sequencePath string, midiOutput string) (*model, error) {
 	}
 
 	m.device = d
-	m.device.StartChannelListeners()
+	m.device.StartPlaybackListeners()
 	m.device.PlaySub.Sub("ui", m.playCh)
 	m.device.StopSub.Sub("ui", m.stopCh)
 	m.device.ClockSub.Sub("ui", m.clockCh)
