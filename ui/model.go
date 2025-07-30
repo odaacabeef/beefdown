@@ -36,10 +36,6 @@ type model struct {
 	stopCh  chan struct{}
 	clockCh chan struct{}
 
-	// Context for managing device channel listeners
-	deviceCtx    context.Context
-	deviceCancel context.CancelFunc
-
 	errs  []error
 	errMu sync.RWMutex // Mutex for protecting errs
 }
@@ -284,19 +280,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.device.Playing() && m.device.CancelF != nil {
 				m.device.CancelF()
 			}
-			// Clean up device context
-			if m.deviceCancel != nil {
-				m.deviceCancel()
-			}
 			return m, tea.Quit
 
 		case "R":
 			if m.device.Playing() {
 				m.device.CancelF()
-			}
-			// Clean up existing device context
-			if m.deviceCancel != nil {
-				m.deviceCancel()
 			}
 			err := m.loadSequence(m.sequence.Path)
 
