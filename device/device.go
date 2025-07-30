@@ -142,12 +142,6 @@ func (d *Device) ErrorsCh() chan error {
 	return d.errorsCh
 }
 
-func (d *Device) silence() {
-	for _, m := range midi.SilenceChannel(-1) {
-		d.sendTrack(m)
-	}
-}
-
 // ListOutputs returns a list of available MIDI output ports
 func ListOutputs() ([]string, error) {
 	outs, err := drivers.Outs()

@@ -32,8 +32,6 @@ func (d *Device) StartPlaybackListeners() {
 		for {
 			<-stopSub
 			if d.state.playing() {
-				d.state.stop()
-				d.silence()
 				d.CancelF()
 			}
 		}
@@ -72,7 +70,10 @@ func (d *Device) playPrimary(a *sequence.Arrangement) {
 		if d.sync == "leader" {
 			d.sendSync(midi.Stop())
 		}
-		d.silence()
+		// silence all channels
+		for _, m := range midi.SilenceChannel(-1) {
+			d.sendTrack(m)
+		}
 	}()
 
 	d.state.play()
