@@ -82,7 +82,7 @@ groupPlayables:
 	m.viewport.yStart = 0
 
 	if m.device != nil {
-		m.device.SetSequenceConfig(m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
+		m.device.SetPlaybackConfig(m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
 	}
 
 	return nil

@@ -38,6 +38,17 @@ func (d *Device) StartPlaybackListeners() {
 	}()
 }
 
+func (d *Device) SetPlaybackConfig(bpm float64, loop bool, sync string) {
+	d.bpm = bpm
+	d.loop = loop
+	d.sync = sync
+}
+
+// UpdateCurrentPlayable updates the current playable for the device
+func (d *Device) UpdateCurrentPlayable(playable sequence.Playable) {
+	d.currentPlayable = playable
+}
+
 // StartPlayback starts playback with the currently selected playable
 func (d *Device) StartPlayback() {
 	if !d.state.stopped() {

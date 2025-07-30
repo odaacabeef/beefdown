@@ -127,17 +127,6 @@ func NewWithSyncInput(outputName string) (*Device, error) {
 	return device, nil
 }
 
-func (d *Device) SetSequenceConfig(bpm float64, loop bool, sync string) {
-	d.bpm = bpm
-	d.loop = loop
-	d.sync = sync
-}
-
-// UpdateCurrentPlayable updates the current playable for the device
-func (d *Device) UpdateCurrentPlayable(playable sequence.Playable) {
-	d.currentPlayable = playable
-}
-
 func (d *Device) ErrorsCh() chan error {
 	return d.errorsCh
 }
