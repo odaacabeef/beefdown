@@ -61,11 +61,6 @@ func initialModel(sequencePath string, midiOutput string) (*model, error) {
 	m.device.StopSub.Sub("ui", m.stopCh)
 	m.device.ClockSub.Sub("ui", m.clockCh)
 	m.device.SetPlaybackConfig(m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
-	_, playables := m.getCurrentGroup()
-	m.device.UpdateCurrentPlayable(playables[m.selected.x])
-
-	m.toggleMIDISyncListening()
-
 	return &m, nil
 }
 

@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"context"
 	"fmt"
 	"runtime"
 	"slices"
@@ -78,23 +77,11 @@ groupPlayables:
 	m.viewport.yStart = 0
 
 	if m.device != nil {
+		_, playables := m.getCurrentGroup()
+		m.device.UpdateCurrentPlayable(playables[m.selected.x])
 		m.device.SetPlaybackConfig(m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
 	}
 
-	return nil
-}
-
-// TODO:: call on reload; don't re-listen if already listening, stop listening
-// if sync setting changed
-func (m *model) toggleMIDISyncListening() error {
-	// For follower mode, start listening for MIDI sync messages immediately
-	if m.sequence.Sync == "follower" {
-		// Create a background context for the MIDI listener
-		// This will be cancelled when the application exits
-		ctx := context.Background()
-		err := m.device.StartSyncListener(ctx)
-		return err
-	}
 	return nil
 }
 

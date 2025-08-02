@@ -37,8 +37,9 @@ type Device struct {
 	sendSyncF  func(midi.Message) error
 
 	// MIDI input for follower mode
-	syncIn     drivers.In
-	syncInPort string
+	syncIn      drivers.In
+	syncCancelF func()
+	listening   bool
 
 	// Current playback parameters
 	currentPlayable sequence.Playable
@@ -122,7 +123,6 @@ func NewWithSyncInput(outputName string) (*Device, error) {
 		return nil, fmt.Errorf("failed to connect to MIDI input '%s': %w", syncDeviceName, err)
 	}
 	device.syncIn = syncIn
-	device.syncInPort = syncDeviceName
 
 	return device, nil
 }
