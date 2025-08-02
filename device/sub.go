@@ -7,19 +7,19 @@ type sub struct {
 	mu sync.RWMutex
 }
 
-func (s *sub) sub(name string, ch chan struct{}) {
+func (s *sub) Sub(name string, ch chan struct{}) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.ch[name] = ch
 }
 
-func (s *sub) unsub(name string) {
+func (s *sub) Unsub(name string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.ch, name)
 }
 
-func (s *sub) pub() {
+func (s *sub) Pub() {
 	s.mu.RLock()
 	channels := make([]chan struct{}, 0, len(s.ch))
 	for _, ch := range s.ch {
