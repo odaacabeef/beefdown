@@ -16,6 +16,7 @@ import (
 func main() {
 	var (
 		listOutputs = flag.Bool("list-outputs", false, "List available MIDI outputs and exit")
+		listInputs  = flag.Bool("list-inputs", false, "List available MIDI inputs and exit")
 		midiOutput  = flag.String("output", "", "MIDI output name (default: virtual 'beefdown' output)")
 	)
 	flag.Parse()
@@ -37,6 +38,23 @@ func main() {
 		return
 	}
 
+	// List inputs if requested
+	if *listInputs {
+		inputs, err := device.ListInputs()
+		if err != nil {
+			log.Fatal("Failed to list MIDI inputs: ", err)
+		}
+		if len(inputs) == 0 {
+			fmt.Println("No MIDI inputs found")
+			return
+		}
+		fmt.Println("Available MIDI inputs:")
+		for _, input := range inputs {
+			fmt.Printf("  %s\n", input)
+		}
+		return
+	}
+
 	// Check for sequence file argument
 	args := flag.Args()
 	if len(args) != 1 {
@@ -47,6 +65,7 @@ func main() {
 		fmt.Println("  beefdown sequence.md")
 		fmt.Println("  beefdown -output 'Crumar Seven' sequence.md")
 		fmt.Println("  beefdown -list-outputs")
+		fmt.Println("  beefdown -list-inputs")
 		os.Exit(1)
 	}
 
@@ -61,7 +80,8 @@ func main() {
 		}()
 	}
 
-	err := ui.StartWithOutput(args[0], *midiOutput)
+	// Hardcode the MIDI input to "beefdown-sync" for follower mode
+	err := ui.Start(args[0], *midiOutput)
 	if err != nil {
 		log.Fatal("Failed to start UI: ", err)
 	}

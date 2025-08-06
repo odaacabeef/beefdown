@@ -38,3 +38,15 @@ func (s state) string() string {
 	}
 	return ""
 }
+
+func (d *Device) State() string {
+	return d.state.string()
+}
+
+func (d *Device) Playing() bool {
+	return d.state.playing()
+}
+
+func (d *Device) Stopped() bool {
+	return d.state.stopped()
+}
