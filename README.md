@@ -141,8 +141,24 @@ gb1 *24
 ```
 ````
 
+You can also use the modulo operator (%) with multiplication. Syntax is `*N%M`
+where:
+
+* `N` is the multiplication factor (how many times to repeat)
+* `M` is the modulo factor (every Mth step will contain the step)
+
+The next part repeats `gb1` 12 times, then for 12 additional steps every other
+step will contain `gb1` (13, 15, 17... `gb1`; 14, 16, 18... blank).
+
 ````
-```beef.part name:hh-4 group:drums ch:16 div:16th
+```beef.part name:hh-4 group:drums ch:16 div:8th-triplet
+gb1 *12
+gb1 *12%2
+```
+````
+
+````
+```beef.part name:hh-5 group:drums ch:16 div:16th
 gb1     *4
     bb1
 gb1     *7
@@ -193,6 +209,7 @@ ks-2 hh-1
 ks-2 hh-2
 ks-2 hh-3
 ks-2 hh-4
+ks-2 hh-5
 ```
 ````
 
@@ -203,8 +220,9 @@ You can also multiply arrangement steps!
 ks-1 hh-1 a
 ks-2 hh-1 a'   *2
 ks-2 hh-2 a' b *2
-ks-2 hh-3 a' b *2
-ks-2 hh-4 a' b *2
+ks-2 hh-3 a' b
+ks-2 hh-4 a' b
+ks-2 hh-5 a' b *2
 ```
 ````
 

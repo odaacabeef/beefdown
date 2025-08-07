@@ -44,12 +44,21 @@ func (a *Arrangement) parsePlayables(s Sequence) (err error) {
 		stepIdx++
 
 		stepsMult = append(stepsMult, sd)
-		mult, err := sd.mult()
+		mult, modulo, err := sd.mult()
 		if err != nil {
 			return err
 		}
-		for range *mult - 1 {
-			a.Playables = append(a.Playables, a.Playables[stepIdx-1])
+		for j := int64(1); j < *mult; j++ {
+			if *modulo > 0 {
+				if j%*modulo == 0 {
+					a.Playables = append(a.Playables, a.Playables[stepIdx-1])
+				} else {
+					a.Playables = append(a.Playables, []Playable{})
+				}
+			} else {
+				// No modulo specified, repeat the step normally
+				a.Playables = append(a.Playables, a.Playables[stepIdx-1])
+			}
 			stepsMult = append(stepsMult, "")
 			stepIdx++
 		}

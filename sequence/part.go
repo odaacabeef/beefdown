@@ -40,7 +40,7 @@ func (p *Part) parseMIDI() (err error) {
 	// determine length
 	totalSteps := len(p.steps)
 	for _, sd := range p.steps {
-		mult, err := sd.mult()
+		mult, _, err := sd.mult()
 		if err != nil {
 			return err
 		}
@@ -53,7 +53,7 @@ func (p *Part) parseMIDI() (err error) {
 	p.offMessages = map[int][]midi.Message{}
 
 	var stepsMult []step
-	for i, sd := range p.steps {
+	for _, sd := range p.steps {
 		stepsMult = append(stepsMult, sd)
 
 		// Parse the step using our AST parser
@@ -96,8 +96,41 @@ func (p *Part) parseMIDI() (err error) {
 
 		stepIdx++
 
-		for range p.stepMult[i] - 1 {
-			p.StepMIDI[stepIdx] = p.StepMIDI[stepIdx-1]
+		// Get multiplication and modulo factors for this step
+		mult, modulo, err := sd.mult()
+		if err != nil {
+			return err
+		}
+
+		// Store the original step content for copying
+		originalStep := p.StepMIDI[stepIdx-1]
+
+		// Handle step repetition with modulo logic
+		for j := int64(1); j < *mult; j++ {
+			if *modulo > 0 {
+				if j%*modulo == 0 {
+					// Deep copy the original step
+					newStep := partStep{
+						On:  make([]midi.Message, len(originalStep.On)),
+						Off: make([]midi.Message, len(originalStep.Off)),
+					}
+					copy(newStep.On, originalStep.On)
+					copy(newStep.Off, originalStep.Off)
+					p.StepMIDI[stepIdx] = newStep
+				} else {
+					p.StepMIDI[stepIdx] = partStep{}
+				}
+			} else {
+				// No modulo specified, repeat the step normally
+				// Deep copy the original step
+				newStep := partStep{
+					On:  make([]midi.Message, len(originalStep.On)),
+					Off: make([]midi.Message, len(originalStep.Off)),
+				}
+				copy(newStep.On, originalStep.On)
+				copy(newStep.Off, originalStep.Off)
+				p.StepMIDI[stepIdx] = newStep
+			}
 			stepsMult = append(stepsMult, "")
 			stepIdx++
 		}
