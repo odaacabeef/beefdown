@@ -148,7 +148,7 @@ where:
 * `M` is the modulo factor (every Mth step will contain the step)
 
 The next part repeats `gb1` 12 times, then for 12 additional steps every other
-step will contain `gb1` (13, 15, 17... `gb1`, 14, 16, 18... blank).
+step will contain `gb1` (13, 15, 17... `gb1`; 14, 16, 18... blank).
 
 ````
 ```beef.part name:hh-4 group:drums ch:16 div:8th-triplet
