@@ -130,33 +130,3 @@ func NewWithSyncInput(outputName string) (*Device, error) {
 func (d *Device) ErrorsCh() chan error {
 	return d.errorsCh
 }
-
-// ListOutputs returns a list of available MIDI output ports
-func ListOutputs() ([]string, error) {
-	outs, err := drivers.Outs()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list MIDI outputs: %w", err)
-	}
-
-	var outputNames []string
-	for _, out := range outs {
-		outputNames = append(outputNames, out.String())
-	}
-
-	return outputNames, nil
-}
-
-// ListInputs returns a list of available MIDI input ports
-func ListInputs() ([]string, error) {
-	ins, err := drivers.Ins()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list MIDI inputs: %w", err)
-	}
-
-	var inputNames []string
-	for _, in := range ins {
-		inputNames = append(inputNames, in.String())
-	}
-
-	return inputNames, nil
-}

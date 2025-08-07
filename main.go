@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/odaacabeef/beefdown/device"
 	"github.com/odaacabeef/beefdown/ui"
 
 	"net/http"
@@ -15,45 +14,9 @@ import (
 
 func main() {
 	var (
-		listOutputs = flag.Bool("list-outputs", false, "List available MIDI outputs and exit")
-		listInputs  = flag.Bool("list-inputs", false, "List available MIDI inputs and exit")
-		midiOutput  = flag.String("output", "", "MIDI output name (default: virtual 'beefdown' output)")
+		midiOutput = flag.String("output", "", "MIDI output name (default: virtual 'beefdown' output)")
 	)
 	flag.Parse()
-
-	// List outputs if requested
-	if *listOutputs {
-		outputs, err := device.ListOutputs()
-		if err != nil {
-			log.Fatal("Failed to list MIDI outputs: ", err)
-		}
-		if len(outputs) == 0 {
-			fmt.Println("No MIDI outputs found")
-			return
-		}
-		fmt.Println("Available MIDI outputs:")
-		for _, output := range outputs {
-			fmt.Printf("  %s\n", output)
-		}
-		return
-	}
-
-	// List inputs if requested
-	if *listInputs {
-		inputs, err := device.ListInputs()
-		if err != nil {
-			log.Fatal("Failed to list MIDI inputs: ", err)
-		}
-		if len(inputs) == 0 {
-			fmt.Println("No MIDI inputs found")
-			return
-		}
-		fmt.Println("Available MIDI inputs:")
-		for _, input := range inputs {
-			fmt.Printf("  %s\n", input)
-		}
-		return
-	}
 
 	// Check for sequence file argument
 	args := flag.Args()
@@ -64,8 +27,6 @@ func main() {
 		fmt.Println("\nExamples:")
 		fmt.Println("  beefdown sequence.md")
 		fmt.Println("  beefdown -output 'Crumar Seven' sequence.md")
-		fmt.Println("  beefdown -list-outputs")
-		fmt.Println("  beefdown -list-inputs")
 		os.Exit(1)
 	}
 
