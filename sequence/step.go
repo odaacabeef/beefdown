@@ -18,7 +18,7 @@ func (s *step) mult() (*int64, *int64, error) {
 	var m int64 = 1
 	var modulo int64 = 0
 	var err error
-	
+
 	if len(match) > 0 {
 		// Found *N%M pattern
 		m, err = strconv.ParseInt(match[1], 10, 64)
@@ -40,12 +40,6 @@ func (s *step) mult() (*int64, *int64, error) {
 		}
 	}
 	return &m, &modulo, nil
-}
-
-// multFactor returns just the multiplication factor (for backward compatibility)
-func (s *step) multFactor() (*int64, error) {
-	m, _, err := s.mult()
-	return m, err
 }
 
 func (s *step) names() []string {

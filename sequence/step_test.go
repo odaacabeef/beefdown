@@ -60,42 +60,6 @@ func TestStepMult(t *testing.T) {
 	}
 }
 
-func TestStepMultFactor(t *testing.T) {
-	tests := []struct {
-		input    string
-		wantMult int64
-		wantErr  bool
-	}{
-		{"c4 *8", 8, false},
-		{"c4 *8%2", 8, false},
-		{"d3 *4", 4, false},
-		{"c4", 1, false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			s := step(tt.input)
-			mult, err := s.multFactor()
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("multFactor() expected error for input %q", tt.input)
-				}
-				return
-			}
-
-			if err != nil {
-				t.Errorf("multFactor() unexpected error for input %q: %v", tt.input, err)
-				return
-			}
-
-			if *mult != tt.wantMult {
-				t.Errorf("multFactor() = %d, want %d for input %q", *mult, tt.wantMult, tt.input)
-			}
-		})
-	}
-}
-
 func TestStepModuloBehavior(t *testing.T) {
 	// Test that modulo behavior works as expected
 	s := step("c4 *8%2")
