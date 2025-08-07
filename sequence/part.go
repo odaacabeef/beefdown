@@ -108,7 +108,6 @@ func (p *Part) parseMIDI() (err error) {
 		// Handle step repetition with modulo logic
 		for j := int64(1); j < *mult; j++ {
 			if *modulo > 0 {
-				// If modulo is specified, only repeat the step if (j+1) % modulo == 0
 				if j%*modulo == 0 {
 					// Deep copy the original step
 					newStep := partStep{
@@ -119,7 +118,6 @@ func (p *Part) parseMIDI() (err error) {
 					copy(newStep.Off, originalStep.Off)
 					p.StepMIDI[stepIdx] = newStep
 				} else {
-					// Create an empty step for non-modulo positions
 					p.StepMIDI[stepIdx] = partStep{}
 				}
 			} else {
