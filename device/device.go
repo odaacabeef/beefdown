@@ -112,15 +112,20 @@ func NewWithSyncOutput(outputName string) (*Device, error) {
 }
 
 // NewWithSyncInput creates a new Device with MIDI sync input capability
-func NewWithSyncInput(outputName string) (*Device, error) {
+func NewWithSyncInput(outputName, inputName string) (*Device, error) {
 	device, err := New(outputName)
 	if err != nil {
 		return nil, err
 	}
 
-	syncIn, err := drivers.InByName(syncDeviceName)
+	// Use the provided input name or default to syncDeviceName
+	if inputName == "" {
+		inputName = syncDeviceName
+	}
+
+	syncIn, err := drivers.InByName(inputName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to MIDI input '%s': %w", syncDeviceName, err)
+		return nil, fmt.Errorf("failed to connect to MIDI input '%s': %w", inputName, err)
 	}
 	device.syncIn = syncIn
 

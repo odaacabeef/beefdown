@@ -13,20 +13,13 @@ import (
 )
 
 func main() {
-	var (
-		midiOutput = flag.String("output", "", "MIDI output name (default: virtual 'beefdown' output)")
-	)
+
 	flag.Parse()
 
 	// Check for sequence file argument
 	args := flag.Args()
 	if len(args) != 1 {
-		fmt.Println("Usage: beefdown [flags] <sequence-file>")
-		fmt.Println("\nFlags:")
-		flag.PrintDefaults()
-		fmt.Println("\nExamples:")
-		fmt.Println("  beefdown sequence.md")
-		fmt.Println("  beefdown -output 'Crumar Seven' sequence.md")
+		fmt.Println("Usage: beefdown <sequence-file>")
 		os.Exit(1)
 	}
 
@@ -41,8 +34,7 @@ func main() {
 		}()
 	}
 
-	// Hardcode the MIDI input to "beefdown-sync" for follower mode
-	err := ui.Start(args[0], *midiOutput)
+	err := ui.Start(args[0])
 	if err != nil {
 		log.Fatal("Failed to start UI: ", err)
 	}

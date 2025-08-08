@@ -6,9 +6,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func Start(sequencePath string, midiOutput string) error {
+func Start(sequencePath string) error {
 
-	m, err := initialModel(sequencePath, midiOutput)
+	m, err := initialModel(sequencePath)
 	if err != nil {
 		return err
 	}
@@ -18,7 +18,7 @@ func Start(sequencePath string, midiOutput string) error {
 	return err
 }
 
-func initialModel(sequencePath string, midiOutput string) (*model, error) {
+func initialModel(sequencePath string) (*model, error) {
 
 	m := model{
 		viewport: &viewport{},
@@ -37,19 +37,19 @@ func initialModel(sequencePath string, midiOutput string) (*model, error) {
 	switch m.sequence.Sync {
 	case "follower":
 		// Use device with sync input capability
-		d, err = device.NewWithSyncInput(midiOutput)
+		d, err = device.NewWithSyncInput(m.sequence.Output, m.sequence.Input)
 		if err != nil {
 			return nil, err
 		}
 	case "leader":
 		// Use device with sync output capability
-		d, err = device.NewWithSyncOutput(midiOutput)
+		d, err = device.NewWithSyncOutput(m.sequence.Output)
 		if err != nil {
 			return nil, err
 		}
 	default:
 		// Use regular device without sync capabilities
-		d, err = device.New(midiOutput)
+		d, err = device.New(m.sequence.Output)
 		if err != nil {
 			return nil, err
 		}
