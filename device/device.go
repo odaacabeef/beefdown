@@ -113,20 +113,25 @@ func NewWithSyncOutput(outputName string) (*Device, error) {
 
 // NewWithSyncInput creates a new Device with MIDI sync input capability
 func NewWithSyncInput(outputName, inputName string) (*Device, error) {
+	var syncIn drivers.In
+
 	device, err := New(outputName)
 	if err != nil {
 		return nil, err
 	}
 
-	// Use the provided input name or default to syncDeviceName
 	if inputName == "" {
-		inputName = syncDeviceName
+		syncIn, err = drivers.Get().(*rtmididrv.Driver).OpenVirtualIn(syncDeviceName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open virtual MIDI sync input: %w", err)
+		}
+	} else {
+		syncIn, err = drivers.InByName(inputName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to MIDI input '%s': %w", inputName, err)
+		}
 	}
 
-	syncIn, err := drivers.InByName(inputName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to MIDI input '%s': %w", inputName, err)
-	}
 	device.syncIn = syncIn
 
 	return device, nil
