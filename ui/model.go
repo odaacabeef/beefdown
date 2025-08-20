@@ -76,13 +76,17 @@ groupPlayables:
 	m.viewport.xStart = []int{}
 	m.viewport.yStart = 0
 
+	m.setDevicePlaybackConfig()
+
+	return nil
+}
+
+func (m *model) setDevicePlaybackConfig() {
 	if m.device != nil {
 		_, playables := m.getCurrentGroup()
 		m.device.UpdateCurrentPlayable(playables[m.selected.x])
 		m.device.SetPlaybackConfig(m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
 	}
-
-	return nil
 }
 
 // restoreSelection attempts to restore the previous selection state after a reload,

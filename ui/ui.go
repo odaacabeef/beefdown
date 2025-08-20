@@ -60,7 +60,8 @@ func initialModel(sequencePath string) (*model, error) {
 	m.device.PlaySub.Sub("ui", m.playCh)
 	m.device.StopSub.Sub("ui", m.stopCh)
 	m.device.ClockSub.Sub("ui", m.clockCh)
-	m.device.SetPlaybackConfig(m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
+	m.setDevicePlaybackConfig()
+
 	return &m, nil
 }
 
