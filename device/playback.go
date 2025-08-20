@@ -44,8 +44,8 @@ func (d *Device) SetPlaybackConfig(bpm float64, loop bool, sync string) {
 	d.updateSync(sync)
 }
 
-// UpdateCurrentPlayable updates the current playable for the device
-func (d *Device) UpdateCurrentPlayable(playable sequence.Playable) {
+// SetCurrentPlayable updates the current playable for the device
+func (d *Device) SetCurrentPlayable(playable sequence.Playable) {
 	d.currentPlayable = playable
 }
 
