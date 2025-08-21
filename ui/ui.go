@@ -6,9 +6,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func Start(sequencePath string, midiOutput string) error {
+func Start(sequencePath string) error {
 
-	m, err := initialModel(sequencePath, midiOutput)
+	m, err := initialModel(sequencePath)
 	if err != nil {
 		return err
 	}
@@ -18,7 +18,7 @@ func Start(sequencePath string, midiOutput string) error {
 	return err
 }
 
-func initialModel(sequencePath string, midiOutput string) (*model, error) {
+func initialModel(sequencePath string) (*model, error) {
 
 	m := model{
 		viewport: &viewport{},
@@ -32,27 +32,9 @@ func initialModel(sequencePath string, midiOutput string) (*model, error) {
 		return nil, err
 	}
 
-	// Check the sync mode and create appropriate device
-	var d *device.Device
-	switch m.sequence.Sync {
-	case "follower":
-		// Use device with sync input capability
-		d, err = device.NewWithSyncInput(midiOutput)
-		if err != nil {
-			return nil, err
-		}
-	case "leader":
-		// Use device with sync output capability
-		d, err = device.NewWithSyncOutput(midiOutput)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		// Use regular device without sync capabilities
-		d, err = device.New(midiOutput)
-		if err != nil {
-			return nil, err
-		}
+	d, err := device.New(m.sequence.Sync, m.sequence.Output, m.sequence.Input)
+	if err != nil {
+		return nil, err
 	}
 
 	m.device = d
@@ -60,7 +42,8 @@ func initialModel(sequencePath string, midiOutput string) (*model, error) {
 	m.device.PlaySub.Sub("ui", m.playCh)
 	m.device.StopSub.Sub("ui", m.stopCh)
 	m.device.ClockSub.Sub("ui", m.clockCh)
-	m.device.SetPlaybackConfig(m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
+	m.setDevicePlaybackConfig()
+
 	return &m, nil
 }
 

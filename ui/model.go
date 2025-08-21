@@ -76,13 +76,17 @@ groupPlayables:
 	m.viewport.xStart = []int{}
 	m.viewport.yStart = 0
 
-	if m.device != nil {
-		_, playables := m.getCurrentGroup()
-		m.device.UpdateCurrentPlayable(playables[m.selected.x])
-		m.device.SetPlaybackConfig(m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
-	}
+	m.setDevicePlaybackConfig()
 
 	return nil
+}
+
+func (m *model) setDevicePlaybackConfig() {
+	if m.device != nil {
+		_, playables := m.getCurrentGroup()
+		m.device.SetCurrentPlayable(playables[m.selected.x])
+		m.device.SetPlaybackConfig(m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
+	}
 }
 
 // restoreSelection attempts to restore the previous selection state after a reload,
@@ -290,7 +294,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.groupX[groupName] = m.selected.x
 				// Update the device's current playable
 				if m.selected.x < len(playables) {
-					m.device.UpdateCurrentPlayable(playables[m.selected.x])
+					m.device.SetCurrentPlayable(playables[m.selected.x])
 				}
 			}
 			m.mu.Unlock()
@@ -303,7 +307,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.groupX[groupName] = m.selected.x
 				// Update the device's current playable
 				if m.selected.x < len(playables) {
-					m.device.UpdateCurrentPlayable(playables[m.selected.x])
+					m.device.SetCurrentPlayable(playables[m.selected.x])
 				}
 			}
 			m.mu.Unlock()
@@ -321,7 +325,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.selected.x = m.groupX[groupName]
 					// Update the device's current playable
 					if m.selected.x < len(playables) {
-						m.device.UpdateCurrentPlayable(playables[m.selected.x])
+						m.device.SetCurrentPlayable(playables[m.selected.x])
 					}
 				}
 			}
@@ -340,7 +344,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.selected.x = m.groupX[groupName]
 					// Update the device's current playable
 					if m.selected.x < len(playables) {
-						m.device.UpdateCurrentPlayable(playables[m.selected.x])
+						m.device.SetCurrentPlayable(playables[m.selected.x])
 					}
 				}
 			}
@@ -354,7 +358,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.groupX[groupName] = m.selected.x
 				// Update the device's current playable
 				if m.selected.x < len(playables) {
-					m.device.UpdateCurrentPlayable(playables[m.selected.x])
+					m.device.SetCurrentPlayable(playables[m.selected.x])
 				}
 			}
 			m.mu.Unlock()
@@ -367,7 +371,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.groupX[groupName] = m.selected.x
 				// Update the device's current playable
 				if m.selected.x < len(playables) {
-					m.device.UpdateCurrentPlayable(playables[m.selected.x])
+					m.device.SetCurrentPlayable(playables[m.selected.x])
 				}
 			}
 			m.mu.Unlock()
@@ -385,7 +389,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.selected.x = m.groupX[groupName]
 					// Update the device's current playable
 					if m.selected.x < len(playables) {
-						m.device.UpdateCurrentPlayable(playables[m.selected.x])
+						m.device.SetCurrentPlayable(playables[m.selected.x])
 					}
 				}
 			}
@@ -404,7 +408,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.selected.x = m.groupX[groupName]
 					// Update the device's current playable
 					if m.selected.x < len(playables) {
-						m.device.UpdateCurrentPlayable(playables[m.selected.x])
+						m.device.SetCurrentPlayable(playables[m.selected.x])
 					}
 				}
 			}

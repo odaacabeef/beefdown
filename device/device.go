@@ -48,18 +48,18 @@ type Device struct {
 // New creates a new Device
 // If outputName is empty, it uses the default virtual output "beefdown"
 // If outputName is provided, it tries to connect to an existing MIDI output with that name
-func New(outputName string) (*Device, error) {
+func New(sync, outputName, inputName string) (*Device, error) {
 	var out drivers.Out
 	var err error
 
 	if outputName == "" {
-		// Use virtual output
+		// Create virtual output
 		out, err = drivers.Get().(*rtmididrv.Driver).OpenVirtualOut(deviceName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open virtual MIDI output: %w", err)
 		}
 	} else {
-		// Try to connect to existing MIDI output
+		// Try to connect to existing output
 		out, err = drivers.OutByName(outputName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to MIDI output '%s': %w", outputName, err)
@@ -71,7 +71,7 @@ func New(outputName string) (*Device, error) {
 		return nil, fmt.Errorf("failed to create MIDI sender: %w", err)
 	}
 
-	return &Device{
+	d := Device{
 		state:    newState(),
 		errorsCh: make(chan error, 100),
 		PlaySub: sub{
@@ -85,78 +85,45 @@ func New(outputName string) (*Device, error) {
 		},
 		sendTrackF: sendTrackF,
 		sendSyncF:  nil, // No sync output for regular devices
-	}, nil
-}
-
-// NewWithSyncOutput creates a new Device with MIDI sync output capability
-// This is used when sync mode is "leader"
-func NewWithSyncOutput(outputName string) (*Device, error) {
-	device, err := New(outputName)
-	if err != nil {
-		return nil, err
 	}
 
-	// Create dedicated virtual output for sync messages
-	syncOut, err := drivers.Get().(*rtmididrv.Driver).OpenVirtualOut(syncDeviceName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open virtual MIDI sync output: %w", err)
+	switch sync {
+	case "follower":
+
+		var syncIn drivers.In
+		if inputName == "" {
+			// Create virtual input
+			syncIn, err = drivers.Get().(*rtmididrv.Driver).OpenVirtualIn(syncDeviceName)
+			if err != nil {
+				return nil, fmt.Errorf("failed to open virtual MIDI sync input: %w", err)
+			}
+		} else {
+			// Try to connect to existing input
+			syncIn, err = drivers.InByName(inputName)
+			if err != nil {
+				return nil, fmt.Errorf("failed to connect to MIDI input '%s': %w", inputName, err)
+			}
+		}
+		d.syncIn = syncIn
+
+	case "leader":
+		// Create dedicated virtual output for sync messages
+		syncOut, err := drivers.Get().(*rtmididrv.Driver).OpenVirtualOut(syncDeviceName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open virtual MIDI sync output: %w", err)
+		}
+
+		sendSyncF, err := midi.SendTo(syncOut)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create MIDI sync sender: %w", err)
+		}
+
+		d.sendSyncF = sendSyncF
 	}
 
-	sendSyncF, err := midi.SendTo(syncOut)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create MIDI sync sender: %w", err)
-	}
-
-	device.sendSyncF = sendSyncF
-	return device, nil
-}
-
-// NewWithSyncInput creates a new Device with MIDI sync input capability
-func NewWithSyncInput(outputName string) (*Device, error) {
-	device, err := New(outputName)
-	if err != nil {
-		return nil, err
-	}
-
-	syncIn, err := drivers.InByName(syncDeviceName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to MIDI input '%s': %w", syncDeviceName, err)
-	}
-	device.syncIn = syncIn
-
-	return device, nil
+	return &d, nil
 }
 
 func (d *Device) ErrorsCh() chan error {
 	return d.errorsCh
-}
-
-// ListOutputs returns a list of available MIDI output ports
-func ListOutputs() ([]string, error) {
-	outs, err := drivers.Outs()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list MIDI outputs: %w", err)
-	}
-
-	var outputNames []string
-	for _, out := range outs {
-		outputNames = append(outputNames, out.String())
-	}
-
-	return outputNames, nil
-}
-
-// ListInputs returns a list of available MIDI input ports
-func ListInputs() ([]string, error) {
-	ins, err := drivers.Ins()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list MIDI inputs: %w", err)
-	}
-
-	var inputNames []string
-	for _, in := range ins {
-		inputNames = append(inputNames, in.String())
-	}
-
-	return inputNames, nil
 }

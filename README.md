@@ -225,19 +225,3 @@ ks-2 hh-4 a' b
 ks-2 hh-5 a' b *2
 ```
 ````
-
-## MIDI Output Configuration
-
-By default, a virtual MIDI output called `beefdown` is created to send note and
-control messages to. This is usually ideal if you're working with virtual
-instruments in a DAW.
-
-You also have the ability to send to a different output instead:
-
-```bash
-# List available MIDI outputs
-beefdown -list-outputs
-
-# Use a specific MIDI output
-beefdown -output 'Crumar Seven' sequence.md
-```
