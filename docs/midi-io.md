@@ -25,24 +25,25 @@ messages is intended to improve sync stability.
 
 ### Sync Input
 
-When `sync:follower` is set, it's expected to find an output called
-`beefdown-sync` to listen for sync messages. You can configure the input to be
-something else:
+When `sync:follower` is set, a virtual input named `beefdown-sync` is created.
+This will show up in a DAW to be able to send sync messages to.
+
+You can configure the sequence `input` to instead listen to an existing source
+of sync messages. For example, if you wanted to listen to a leader instance of
+beefdown:
 
 ````
 ```beef.sequence
 sync:follower
-input:'IAC Driver Bus 1'
+input:beefdown-sync
 ```
 ````
 
 ### Ableton Live
 
 When synchronizing with a DAW like Live [^1], it's recommended to use the DAW as
-the leader.
-
-You can have beefdown lead, but recorded MIDI doesn't quite land where it's
-intended. Reducing the sync delay can help, but this is also imprecise. It's
-close enough though that it can usually be fixed by quantizing.
+the leader. You can have beefdown lead, but it's less reliable in the context of
+recording. In either case, you'll likely need to adjust the sync delay [^2].
 
 [^1]: https://help.ableton.com/hc/en-us/articles/209071149-Synchronizing-Live-via-MIDI
+[^2]: https://www.ableton.com/en/manual/synchronizing-with-link-tempo-follower-and-midi/#sync-delay
