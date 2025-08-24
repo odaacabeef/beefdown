@@ -159,9 +159,7 @@ func (v *viewport) cropY(header string, groups []string, selected coordinates) s
 	lastLine = bodyHeight + v.yStart
 
 	// Ensure lastLine doesn't exceed the number of lines
-	if lastLine > len(lines) {
-		lastLine = len(lines)
-	}
+	lastLine = min(lastLine, len(lines))
 
 	if lipgloss.Height(body) > bodyHeight {
 		body = strings.Join(lines[v.yStart:lastLine], "\n")
