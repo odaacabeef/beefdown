@@ -89,8 +89,6 @@ func (v *viewport) cropX(groupNames []string, groupX []int, groupPlayables [][]s
 			v.xStart[i] = 0
 		}
 
-		xLast = rowWidth + v.xStart[i]
-
 		var linesCropped []string
 		for line := range strings.SplitSeq(row, "\n") {
 			// Ensure we don't go out of bounds when slicing
