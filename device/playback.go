@@ -38,10 +38,10 @@ func (d *Device) StartPlaybackListeners() {
 	}()
 }
 
-func (d *Device) SetPlaybackConfig(bpm float64, loop bool, sync string) {
+func (d *Device) SetPlaybackConfig(bpm float64, loop bool, sync string, input string) {
 	d.bpm = bpm
 	d.loop = loop
-	d.updateSync(sync)
+	d.updateSync(sync, input)
 }
 
 // SetCurrentPlayable updates the current playable for the device

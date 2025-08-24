@@ -34,7 +34,10 @@ type Device struct {
 	errorsCh chan error
 
 	sendTrackF func(midi.Message) error
-	sendSyncF  func(midi.Message) error
+
+	// MIDI output for leader mode
+	syncOut   drivers.Out
+	sendSyncF func(midi.Message) error
 
 	// MIDI input for follower mode
 	syncIn      drivers.In
@@ -43,6 +46,10 @@ type Device struct {
 
 	// Current playback parameters
 	currentPlayable sequence.Playable
+
+	// Port names for sync configuration
+	outputName string
+	inputName  string
 }
 
 // New creates a new Device
@@ -84,41 +91,15 @@ func New(sync, outputName, inputName string) (*Device, error) {
 			ch: make(map[string]chan struct{}),
 		},
 		sendTrackF: sendTrackF,
-		sendSyncF:  nil, // No sync output for regular devices
+		sendSyncF:  nil, // Will be configured by updateSync
 	}
 
-	switch sync {
-	case "follower":
+	// Store port names for later sync configuration
+	d.outputName = outputName
 
-		var syncIn drivers.In
-		if inputName == "" {
-			// Create virtual input
-			syncIn, err = drivers.Get().(*rtmididrv.Driver).OpenVirtualIn(syncDeviceName)
-			if err != nil {
-				return nil, fmt.Errorf("failed to open virtual MIDI sync input: %w", err)
-			}
-		} else {
-			// Try to connect to existing input
-			syncIn, err = drivers.InByName(inputName)
-			if err != nil {
-				return nil, fmt.Errorf("failed to connect to MIDI input '%s': %w", inputName, err)
-			}
-		}
-		d.syncIn = syncIn
-
-	case "leader":
-		// Create dedicated virtual output for sync messages
-		syncOut, err := drivers.Get().(*rtmididrv.Driver).OpenVirtualOut(syncDeviceName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to open virtual MIDI sync output: %w", err)
-		}
-
-		sendSyncF, err := midi.SendTo(syncOut)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create MIDI sync sender: %w", err)
-		}
-
-		d.sendSyncF = sendSyncF
+	// Configure sync ports based on initial sync mode
+	if err := d.updateSync(sync, inputName); err != nil {
+		return nil, err
 	}
 
 	return &d, nil
