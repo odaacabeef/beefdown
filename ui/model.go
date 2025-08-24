@@ -444,7 +444,7 @@ func (m *model) View() string {
 	t := "-"
 	m.playMu.RLock()
 	if m.playStart != nil {
-		t = fmt.Sprintf("%s", time.Now().Sub(*m.playStart).Round(time.Second))
+		t = time.Since(*m.playStart).Round(time.Second).String()
 	}
 	m.playMu.RUnlock()
 	header += st.state().Render(fmt.Sprintf("state: %s; goroutines: %d; time: %s", m.device.State(), runtime.NumGoroutine(), t))
