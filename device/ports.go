@@ -39,39 +39,37 @@ func (d *Device) sendSync(mm midi.Message) {
 
 // updateSync updates the sync mode and manages MIDI sync port creation and listening
 // This method can be called multiple times to handle sync mode changes
-func (d *Device) updateSync(mode string, inputName string) error {
+func (d *Device) updateSync(mode string, inputName string) {
 
 	modeChanged := d.sync != mode
-	inputChanged := d.inputName != inputName && mode == "follower"
 
 	// If nothing has changed, no need to do anything
-	if !modeChanged && !inputChanged {
-		return nil
+	if !modeChanged {
+		return
 	}
 
-	// Clean up existing sync ports if mode is changing
-	d.cleanupSyncPorts()
+	if err := d.cleanupSyncPorts(); err != nil {
+		d.errorsCh <- err
+	}
 
 	d.inputName = inputName
 	d.sync = mode
 
 	// Configure sync ports based on mode
-	switch mode {
+	switch d.sync {
 	case "follower":
 		if err := d.configureFollowerSync(); err != nil {
-			return fmt.Errorf("failed to configure follower sync: %w", err)
+			d.errorsCh <- fmt.Errorf("failed to configure follower sync: %w", err)
 		}
 	case "leader":
 		if err := d.configureLeaderSync(); err != nil {
-			return fmt.Errorf("failed to configure leader sync: %w", err)
+			d.errorsCh <- fmt.Errorf("failed to configure leader sync: %w", err)
 		}
 	}
-
-	return nil
 }
 
 // cleanupSyncPorts closes and cleans up existing sync-related MIDI ports
-func (d *Device) cleanupSyncPorts() {
+func (d *Device) cleanupSyncPorts() error {
 	// Stop listening if currently listening
 	if d.listening && d.syncCancelF != nil {
 		d.syncCancelF()
@@ -81,14 +79,14 @@ func (d *Device) cleanupSyncPorts() {
 	// Close sync input if open
 	if d.syncIn != nil && d.syncIn.IsOpen() {
 		if err := d.syncIn.Close(); err != nil {
-			d.errorsCh <- err
+			return err
 		}
 	}
 
 	// Close sync output if open
 	if d.syncOut != nil && d.syncOut.IsOpen() {
 		if err := d.syncOut.Close(); err != nil {
-			d.errorsCh <- err
+			return err
 		}
 	}
 
@@ -96,6 +94,7 @@ func (d *Device) cleanupSyncPorts() {
 	d.syncIn = nil
 	d.syncCancelF = nil
 	d.sendSyncF = nil
+	return nil
 }
 
 // configureFollowerSync sets up MIDI input for sync listening
@@ -116,7 +115,6 @@ func (d *Device) configureFollowerSync() error {
 			return fmt.Errorf("failed to connect to MIDI input '%s': %w", d.inputName, err)
 		}
 	}
-
 	d.syncIn = syncIn
 
 	// Open the input if not already open

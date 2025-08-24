@@ -97,11 +97,6 @@ func New(sync, outputName, inputName string) (*Device, error) {
 	// Store port names for later sync configuration
 	d.outputName = outputName
 
-	// Configure sync ports based on initial sync mode
-	if err := d.updateSync(sync, inputName); err != nil {
-		return nil, err
-	}
-
 	return &d, nil
 }
 
