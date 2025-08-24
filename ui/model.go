@@ -83,7 +83,7 @@ func (m *model) setDevicePlaybackConfig() {
 	if m.device != nil {
 		_, playables := m.getCurrentGroup()
 		m.device.SetCurrentPlayable(playables[m.selected.x])
-		m.device.SetPlaybackConfig(m.sequence.BPM, m.sequence.Loop, m.sequence.Sync)
+		m.device.SetPlaybackConfig(m.sequence.BPM, m.sequence.Loop, m.sequence.Sync, m.sequence.Input)
 	}
 }
 
