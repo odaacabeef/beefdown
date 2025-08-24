@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"maps"
 	"runtime"
 	"slices"
 	"strings"
@@ -42,10 +43,7 @@ type model struct {
 func (m *model) loadSequence(sequencePath string) error {
 	// Store current selection state before reload
 	oldSelected := m.selected
-	oldGroupX := make(map[string]int)
-	for k, v := range m.groupX {
-		oldGroupX[k] = v
-	}
+	oldGroupX := maps.Clone(m.groupX)
 	oldGroupNames := make([]string, len(m.groupNames))
 	copy(oldGroupNames, m.groupNames)
 
@@ -146,20 +144,14 @@ func (m *model) restoreSelection(oldSelected coordinates, oldGroupX map[string]i
 
 	// Final validation to ensure coordinates are within bounds
 	if m.selected.y >= len(m.groupNames) {
-		m.selected.y = len(m.groupNames) - 1
-		if m.selected.y < 0 {
-			m.selected.y = 0
-		}
+		m.selected.y = max(len(m.groupNames)-1, 0)
 	}
 
 	if m.selected.y >= 0 && m.selected.y < len(m.groupNames) {
 		groupName := m.groupNames[m.selected.y]
 		playables := m.groups[groupName]
 		if m.selected.x >= len(playables) {
-			m.selected.x = len(playables) - 1
-			if m.selected.x < 0 {
-				m.selected.x = 0
-			}
+			m.selected.x = max(len(playables)-1, 0)
 		}
 		m.groupX[groupName] = m.selected.x
 	}
@@ -452,7 +444,7 @@ func (m *model) View() string {
 	t := "-"
 	m.playMu.RLock()
 	if m.playStart != nil {
-		t = fmt.Sprintf("%s", time.Now().Sub(*m.playStart).Round(time.Second))
+		t = time.Since(*m.playStart).Round(time.Second).String()
 	}
 	m.playMu.RUnlock()
 	header += st.state().Render(fmt.Sprintf("state: %s; goroutines: %d; time: %s", m.device.State(), runtime.NumGoroutine(), t))

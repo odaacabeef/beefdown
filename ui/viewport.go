@@ -89,10 +89,8 @@ func (v *viewport) cropX(groupNames []string, groupX []int, groupPlayables [][]s
 			v.xStart[i] = 0
 		}
 
-		xLast = rowWidth + v.xStart[i]
-
 		var linesCropped []string
-		for _, line := range strings.Split(row, "\n") {
+		for line := range strings.SplitSeq(row, "\n") {
 			// Ensure we don't go out of bounds when slicing
 			start := v.xStart[i]
 			if start >= len(line) {
@@ -159,9 +157,7 @@ func (v *viewport) cropY(header string, groups []string, selected coordinates) s
 	lastLine = bodyHeight + v.yStart
 
 	// Ensure lastLine doesn't exceed the number of lines
-	if lastLine > len(lines) {
-		lastLine = len(lines)
-	}
+	lastLine = min(lastLine, len(lines))
 
 	if lipgloss.Height(body) > bodyHeight {
 		body = strings.Join(lines[v.yStart:lastLine], "\n")
