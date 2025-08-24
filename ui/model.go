@@ -144,20 +144,14 @@ func (m *model) restoreSelection(oldSelected coordinates, oldGroupX map[string]i
 
 	// Final validation to ensure coordinates are within bounds
 	if m.selected.y >= len(m.groupNames) {
-		m.selected.y = len(m.groupNames) - 1
-		if m.selected.y < 0 {
-			m.selected.y = 0
-		}
+		m.selected.y = max(len(m.groupNames)-1, 0)
 	}
 
 	if m.selected.y >= 0 && m.selected.y < len(m.groupNames) {
 		groupName := m.groupNames[m.selected.y]
 		playables := m.groups[groupName]
 		if m.selected.x >= len(playables) {
-			m.selected.x = len(playables) - 1
-			if m.selected.x < 0 {
-				m.selected.x = 0
-			}
+			m.selected.x = max(len(playables)-1, 0)
 		}
 		m.groupX[groupName] = m.selected.x
 	}
