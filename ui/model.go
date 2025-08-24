@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"maps"
 	"runtime"
 	"slices"
 	"strings"
@@ -42,10 +43,7 @@ type model struct {
 func (m *model) loadSequence(sequencePath string) error {
 	// Store current selection state before reload
 	oldSelected := m.selected
-	oldGroupX := make(map[string]int)
-	for k, v := range m.groupX {
-		oldGroupX[k] = v
-	}
+	oldGroupX := maps.Clone(m.groupX)
 	oldGroupNames := make([]string, len(m.groupNames))
 	copy(oldGroupNames, m.groupNames)
 
