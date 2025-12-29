@@ -4,16 +4,20 @@ Rust rewrite of beefdown with improved timing accuracy and real-time performance
 
 ## Current Status
 
-**Phase 1: Timing PoC** ✓ (In Progress)
+**Phase 1: Timing PoC** ✅ Complete
 - High-resolution timers using `mach_absolute_time()` on macOS
 - MIDI clock with drift compensation
 - Real-time thread priorities
 - Timing accuracy benchmarks
+- **Result**: 6.2x better timing accuracy than Go
 
-**Phase 2: MIDI Engine** (Not Started)
+**Phase 2: MIDI Engine** ✅ Complete
 - MIDI I/O with `midir`
-- Virtual MIDI ports
-- Clock sync (leader/follower modes)
+- Virtual MIDI ports creation and connection
+- Leader mode: Send MIDI clock sync messages
+- Follower mode: Receive external MIDI clock
+- Device management with play/stop/config
+- Event subscription system
 
 **Phase 3: Sequence Engine** (Not Started)
 - Beefdown parser (markdown + code blocks)
@@ -30,7 +34,9 @@ cd beefdown-rs
 cargo build --release
 ```
 
-## Running Timing Benchmark
+## Running Examples
+
+### Timing Benchmark
 
 Compare Rust vs Go timing accuracy:
 
@@ -42,6 +48,16 @@ cargo run --example timing_benchmark --release
 cd ..
 go test -v -run TestTimingAccuracy ./device
 ```
+
+### MIDI Engine Demo
+
+Demonstrate the MIDI engine with virtual ports:
+
+```bash
+cargo run --example midi_demo --release
+```
+
+This creates virtual MIDI ports that you can connect to from a DAW or MIDI monitor.
 
 Actual results:
 - **Go**: 0.786ms average error, ±7.07 BPM variation
