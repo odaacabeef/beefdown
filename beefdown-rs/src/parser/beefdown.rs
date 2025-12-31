@@ -1,4 +1,4 @@
-use crate::sequence::{Part, Step};
+use crate::sequence::{Part, Step, Arrangement};
 use std::sync::Arc;
 
 pub fn parse_part(content: &str) -> Result<Arc<Part>, String> {
@@ -100,6 +100,86 @@ fn parse_note_name(s: &str) -> Result<(String, u8), String> {
     let octave = s[octave_pos..].parse()
         .map_err(|_| format!("Invalid octave: {}", &s[octave_pos..]))?;
     Ok((note, octave))
+}
+
+/// Parse .sequence metadata
+pub fn parse_sequence_metadata(content: &str) -> Result<(f64, String, String, String), String> {
+    let line = content.lines().next().ok_or("Empty sequence block")?;
+    if !line.starts_with(".sequence") {
+        return Err(format!("Expected .sequence, got: {}", line));
+    }
+
+    let mut bpm = 120.0;
+    let mut sync_mode = String::from("none");
+    let mut input = String::new();
+    let mut output = String::new();
+
+    for attr in line.split_whitespace().skip(1) {
+        if let Some((key, value)) = attr.split_once(':') {
+            match key {
+                "bpm" => bpm = value.parse().unwrap_or(120.0),
+                "sync" => sync_mode = value.to_string(),
+                "input" => input = value.to_string(),
+                "output" => output = value.to_string(),
+                _ => {}
+            }
+        }
+    }
+
+    Ok((bpm, sync_mode, input, output))
+}
+
+/// Parse .arrangement block
+pub fn parse_arrangement(content: &str, available_parts: &[Arc<Part>]) -> Result<Arc<Arrangement>, String> {
+    let lines: Vec<&str> = content.lines().collect();
+    if lines.is_empty() {
+        return Err("Empty arrangement content".to_string());
+    }
+
+    let meta_line = lines[0];
+    if !meta_line.starts_with(".arrangement") {
+        return Err(format!("Expected .arrangement, got: {}", meta_line));
+    }
+
+    let mut name = String::new();
+    let mut group = String::new();
+
+    for attr in meta_line.split_whitespace().skip(1) {
+        if let Some((key, value)) = attr.split_once(':') {
+            match key {
+                "name" => name = value.to_string(),
+                "group" => group = value.to_string(),
+                _ => {}
+            }
+        }
+    }
+
+    if name.is_empty() {
+        return Err("Arrangement name required".to_string());
+    }
+
+    let mut arrangement = Arrangement::new(name);
+    if !group.is_empty() {
+        arrangement = arrangement.with_group(group);
+    }
+
+    // Parse part references
+    for line in &lines[1..] {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        if let Some(part_name) = line.strip_prefix("part:") {
+            let part = available_parts
+                .iter()
+                .find(|p| p.name() == part_name)
+                .ok_or_else(|| format!("Part not found: {}", part_name))?
+                .clone();
+            arrangement.add_part(part);
+        }
+    }
+
+    Ok(Arc::new(arrangement))
 }
 
 #[cfg(test)]

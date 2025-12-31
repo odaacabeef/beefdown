@@ -14,6 +14,9 @@ crossbeam-channel = "0.5"
 # High-resolution timing (macOS)
 mach2 = "0.4"
 
+# Parsing
+regex = "1.10"
+
 # Async runtime (for future use)
 tokio = { version = "1", features = ["full"], optional = true }
 

@@ -59,6 +59,7 @@ dependencies = [
  "crossbeam-channel",
  "mach2",
  "midir",
+ "regex",
  "thread-priority",
  "tokio",
 ]
