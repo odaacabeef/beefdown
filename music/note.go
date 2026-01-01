@@ -2,8 +2,6 @@ package music
 
 import (
 	"strconv"
-
-	"gitlab.com/gomidi/midi/v2"
 )
 
 func Note(name string, octave string) (*uint8, error) {
@@ -15,29 +13,29 @@ func Note(name string, octave string) (*uint8, error) {
 	var note uint8
 	switch name {
 	case "c":
-		note = midi.C(oct)
+		note = C(oct)
 	case "c#", "db":
-		note = midi.Db(oct)
+		note = Db(oct)
 	case "d":
-		note = midi.D(oct)
+		note = D(oct)
 	case "d#", "eb":
-		note = midi.Eb(oct)
+		note = Eb(oct)
 	case "e":
-		note = midi.E(oct)
+		note = E(oct)
 	case "f":
-		note = midi.F(oct)
+		note = F(oct)
 	case "f#", "gb":
-		note = midi.Gb(oct)
+		note = Gb(oct)
 	case "g":
-		note = midi.G(oct)
+		note = G(oct)
 	case "g#", "ab":
-		note = midi.Ab(oct)
+		note = Ab(oct)
 	case "a":
-		note = midi.A(oct)
+		note = A(oct)
 	case "a#", "bb":
-		note = midi.Bb(oct)
+		note = Bb(oct)
 	case "b":
-		note = midi.B(oct)
+		note = B(oct)
 	}
 	return &note, nil
 }

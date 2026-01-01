@@ -6,10 +6,6 @@ import (
 	"time"
 
 	"github.com/odaacabeef/beefdown/sequence"
-
-	"gitlab.com/gomidi/midi/v2"
-	"gitlab.com/gomidi/midi/v2/drivers"
-	"gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
 )
 
 const deviceName = "beefdown"
@@ -33,11 +29,11 @@ type Device struct {
 
 	errorsCh chan error
 
-	sendTrackF func(midi.Message) error
-	sendSyncF  func(midi.Message) error
+	trackOut *MidiOutput
+	syncOut  *MidiOutput
 
 	// MIDI input for follower mode
-	syncIn      drivers.In
+	syncIn      *MidiInput
 	syncCancelF func()
 	listening   bool
 
@@ -49,26 +45,21 @@ type Device struct {
 // If outputName is empty, it uses the default virtual output "beefdown"
 // If outputName is provided, it tries to connect to an existing MIDI output with that name
 func New(sync, outputName, inputName string) (*Device, error) {
-	var out drivers.Out
+	var trackOut *MidiOutput
 	var err error
 
 	if outputName == "" {
 		// Create virtual output
-		out, err = drivers.Get().(*rtmididrv.Driver).OpenVirtualOut(deviceName)
+		trackOut, err = NewVirtualOutput(deviceName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open virtual MIDI output: %w", err)
 		}
 	} else {
 		// Try to connect to existing output
-		out, err = drivers.OutByName(outputName)
+		trackOut, err = ConnectOutput(outputName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to MIDI output '%s': %w", outputName, err)
 		}
-	}
-
-	sendTrackF, err := midi.SendTo(out)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create MIDI sender: %w", err)
 	}
 
 	d := Device{
@@ -83,23 +74,22 @@ func New(sync, outputName, inputName string) (*Device, error) {
 		ClockSub: sub{
 			ch: make(map[string]chan struct{}),
 		},
-		sendTrackF: sendTrackF,
-		sendSyncF:  nil, // No sync output for regular devices
+		trackOut: trackOut,
+		syncOut:  nil, // No sync output for regular devices
 	}
 
 	switch sync {
 	case "follower":
-
-		var syncIn drivers.In
+		var syncIn *MidiInput
 		if inputName == "" {
 			// Create virtual input
-			syncIn, err = drivers.Get().(*rtmididrv.Driver).OpenVirtualIn(syncDeviceName)
+			syncIn, err = NewVirtualInput(syncDeviceName)
 			if err != nil {
 				return nil, fmt.Errorf("failed to open virtual MIDI sync input: %w", err)
 			}
 		} else {
 			// Try to connect to existing input
-			syncIn, err = drivers.InByName(inputName)
+			syncIn, err = ConnectInput(inputName)
 			if err != nil {
 				return nil, fmt.Errorf("failed to connect to MIDI input '%s': %w", inputName, err)
 			}
@@ -108,17 +98,11 @@ func New(sync, outputName, inputName string) (*Device, error) {
 
 	case "leader":
 		// Create dedicated virtual output for sync messages
-		syncOut, err := drivers.Get().(*rtmididrv.Driver).OpenVirtualOut(syncDeviceName)
+		syncOut, err := NewVirtualOutput(syncDeviceName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open virtual MIDI sync output: %w", err)
 		}
-
-		sendSyncF, err := midi.SendTo(syncOut)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create MIDI sync sender: %w", err)
-		}
-
-		d.sendSyncF = sendSyncF
+		d.syncOut = syncOut
 	}
 
 	return &d, nil

@@ -1,8 +1,10 @@
 mod timing;
 mod clock;
+mod midi;
 
 pub use clock::Clock;
-use std::ffi::c_void;
+use std::ffi::{c_void, CStr};
+use std::os::raw::c_char;
 
 /// FFI-safe callback type for clock ticks
 pub type TickCallback = extern "C" fn(*mut c_void);
@@ -87,6 +89,145 @@ pub extern "C" fn clock_free(clock: *mut Clock) {
             let _ = Box::from_raw(clock);
         }
     }
+}
+
+// ============================================================================
+// MIDI FFI Functions
+// ============================================================================
+
+/// FFI-safe callback type for MIDI input
+pub type MidiInputCallback = extern "C" fn(*mut c_void, *const u8, usize, i64);
+
+/// Create a virtual MIDI output port
+/// Returns port ID on success, -1 on error
+#[no_mangle]
+pub extern "C" fn midi_create_virtual_output(name: *const c_char) -> i32 {
+    if name.is_null() {
+        return -1;
+    }
+
+    let name = unsafe {
+        match CStr::from_ptr(name).to_str() {
+            Ok(s) => s,
+            Err(_) => return -1,
+        }
+    };
+
+    match midi::create_virtual_output(name) {
+        Ok(id) => id,
+        Err(_) => -1,
+    }
+}
+
+/// Connect to an existing MIDI output port by name
+/// Returns port ID on success, -1 on error
+#[no_mangle]
+pub extern "C" fn midi_connect_output(name: *const c_char) -> i32 {
+    if name.is_null() {
+        return -1;
+    }
+
+    let name = unsafe {
+        match CStr::from_ptr(name).to_str() {
+            Ok(s) => s,
+            Err(_) => return -1,
+        }
+    };
+
+    match midi::connect_output(name) {
+        Ok(id) => id,
+        Err(_) => -1,
+    }
+}
+
+/// Send MIDI message bytes to an output port
+/// Returns 0 on success, -1 on error
+#[no_mangle]
+pub extern "C" fn midi_send(port_id: i32, bytes: *const u8, len: usize) -> i32 {
+    if bytes.is_null() || len == 0 || len > 3 {
+        return -1;
+    }
+
+    let bytes = unsafe { std::slice::from_raw_parts(bytes, len) };
+
+    match midi::send(port_id, bytes) {
+        Ok(_) => 0,
+        Err(_) => -1,
+    }
+}
+
+/// Close an output port
+#[no_mangle]
+pub extern "C" fn midi_close_output(port_id: i32) {
+    midi::close_output(port_id);
+}
+
+/// Create a virtual MIDI input port
+/// Returns port ID on success, -1 on error
+#[no_mangle]
+pub extern "C" fn midi_create_virtual_input(name: *const c_char) -> i32 {
+    if name.is_null() {
+        return -1;
+    }
+
+    let name = unsafe {
+        match CStr::from_ptr(name).to_str() {
+            Ok(s) => s,
+            Err(_) => return -1,
+        }
+    };
+
+    match midi::create_virtual_input(name) {
+        Ok(id) => id,
+        Err(_) => -1,
+    }
+}
+
+/// Connect to an existing MIDI input port by name
+/// Returns port ID on success, -1 on error
+#[no_mangle]
+pub extern "C" fn midi_connect_input(name: *const c_char) -> i32 {
+    if name.is_null() {
+        return -1;
+    }
+
+    let name = unsafe {
+        match CStr::from_ptr(name).to_str() {
+            Ok(s) => s,
+            Err(_) => return -1,
+        }
+    };
+
+    match midi::connect_input(name) {
+        Ok(id) => id,
+        Err(_) => -1,
+    }
+}
+
+/// Start listening for MIDI messages on an input port
+/// Returns 0 on success, -1 on error
+#[no_mangle]
+pub extern "C" fn midi_start_listening(
+    port_id: i32,
+    callback: MidiInputCallback,
+    user_data: *mut c_void,
+) -> i32 {
+    match midi::start_listening(port_id, callback, user_data) {
+        Ok(_) => 0,
+        Err(_) => -1,
+    }
+}
+
+/// Stop listening on an input port
+#[no_mangle]
+pub extern "C" fn midi_stop_listening(port_id: i32) {
+    midi::stop_listening(port_id);
+}
+
+/// Close an input port
+#[no_mangle]
+pub extern "C" fn midi_close_input(port_id: i32) {
+    midi::close_input(port_id);
 }
 
 #[cfg(test)]

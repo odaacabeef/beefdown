@@ -3,11 +3,15 @@ package device
 import (
 	"fmt"
 
-	"gitlab.com/gomidi/midi/v2"
+	"github.com/odaacabeef/beefdown/midi"
 )
 
-func (d *Device) sendTrack(mm midi.Message) {
-	err := d.sendTrackF(mm)
+func (d *Device) sendTrack(bytes []byte) {
+	if d.trackOut == nil {
+		return
+	}
+
+	err := d.trackOut.Send(bytes)
 	if err != nil {
 		select {
 		case d.errorsCh <- err:
@@ -18,13 +22,13 @@ func (d *Device) sendTrack(mm midi.Message) {
 	}
 }
 
-func (d *Device) sendSync(mm midi.Message) {
-	if d.sendSyncF == nil {
+func (d *Device) sendSync(bytes []byte) {
+	if d.syncOut == nil {
 		// No sync output configured, ignore the message
 		return
 	}
 
-	err := d.sendSyncF(mm)
+	err := d.syncOut.Send(bytes)
 	if err != nil {
 		select {
 		case d.errorsCh <- err:
@@ -46,12 +50,8 @@ func (d *Device) updateSync(mode string) {
 	if d.sync != "follower" {
 		// Not in follower mode - stop listening if currently listening
 		if d.listening {
-			d.syncCancelF()
-			if d.syncIn.IsOpen() {
-				err := d.syncIn.Close()
-				if err != nil {
-					d.errorsCh <- err
-				}
+			if d.syncIn != nil {
+				d.syncIn.StopListening()
 			}
 			d.listening = false
 		}
@@ -70,48 +70,31 @@ func (d *Device) updateSync(mode string) {
 		return
 	}
 
-	if !d.syncIn.IsOpen() {
-		err := d.syncIn.Open()
-		if err != nil {
-			d.errorsCh <- err
-		}
-	}
-
-	// Use the gomidi ListenTo API to handle MIDI input
-	stop, err := midi.ListenTo(d.syncIn, func(msg midi.Message, timestampms int32) {
-
+	// Start listening for MIDI sync messages
+	err := d.syncIn.Listen(func(bytes []byte, timestamp int64) {
 		switch {
-		case msg.Is(midi.StartMsg):
-
+		case midi.IsStart(bytes):
 			// Start message received - trigger clock events
 			if d.state.stopped() {
 				d.PlaySub.Pub()
 			}
-		case msg.Is(midi.StopMsg):
-
+		case midi.IsStop(bytes):
 			// Stop message received - stop playback
 			if d.state.playing() {
 				d.StopSub.Pub()
 			}
-		case msg.Is(midi.TimingClockMsg):
-
+		case midi.IsTimingClock(bytes):
 			// Timing clock message received - trigger clock events
 			if d.state.playing() {
 				d.ClockSub.Pub()
 			}
 		}
-	},
-		midi.UseTimeCode(),
-		midi.HandleError(func(err error) {
-			d.errorsCh <- err
-		}),
-	)
+	})
 
 	if err != nil {
 		d.errorsCh <- fmt.Errorf("failed to start MIDI listener: %w", err)
 		return
 	}
 
-	d.syncCancelF = stop
 	d.listening = true
 }

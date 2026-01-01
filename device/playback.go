@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/odaacabeef/beefdown/midi"
 	"github.com/odaacabeef/beefdown/sequence"
-	"gitlab.com/gomidi/midi/v2"
 )
 
 // StartChannelListeners starts listening for play/stop messages on the channels
