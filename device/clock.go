@@ -68,8 +68,13 @@ func (rc *RustClock) Start(callback func()) error {
 	rc.callback = callback
 
 	// Pass the clock ID as user data (not a Go pointer!)
-	userData := unsafe.Pointer(rc.id)
-	result := C.clock_start(rc.clock, C.tick_callback(C.clockTickCallback), userData)
+	//
+	// Note: go vet warns about this unsafe.Pointer conversion, but it's safe because:
+	// 1. rc.id is an integer ID (not a real pointer)
+	// 2. C side treats it as opaque user data (void*)
+	// 3. Callback converts it back to uintptr and looks up the RustClock in clockRegistry
+	// 4. No actual Go pointers are passed to C (avoiding Go's CGo pointer rules)
+	result := C.clock_start(rc.clock, C.tick_callback(C.clockTickCallback), unsafe.Pointer(rc.id))
 
 	if result != 0 {
 		return fmt.Errorf("failed to start clock")

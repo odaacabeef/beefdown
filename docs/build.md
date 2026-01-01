@@ -148,7 +148,7 @@ beefdown/
 │   └── build.md          # Build documentation
 ├── *.go                  # Go source (TUI, parsing, etc.)
 ├── device/
-│   └── rust_clock.go     # CGo wrapper for Rust clock
+│   └── clock.go          # CGo wrapper for Rust clock
 └── rust/                 # Rust timing library
     ├── Cargo.toml
     ├── beefdown_clock.h  # C header
@@ -194,4 +194,4 @@ This matters for tight MIDI timing and sync with DAWs.
 
 - [rust/README.md](rust/README.md) - Rust clock library documentation
 - [Makefile](Makefile) - Build system source
-- [device/rust_clock.go](device/rust_clock.go) - Go FFI wrapper implementation
+- [device/clock.go](device/clock.go) - Go FFI wrapper implementation
