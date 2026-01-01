@@ -3,30 +3,16 @@ name = "beefdown-rs"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "beefdown"
-path = "src/main.rs"
+[lib]
+name = "beefdown_clock"
+crate-type = ["cdylib", "rlib"]  # cdylib for C FFI, rlib for Rust tests
 
 [dependencies]
-# MIDI I/O
-midir = "0.10"
-
-# Real-time performance
+# Real-time thread priorities
 thread-priority = "1.2"
-crossbeam-channel = "0.5"
 
 # High-resolution timing (macOS)
 mach2 = "0.4"
-
-# Parsing
-regex = "1.10"
-
-# TUI
-ratatui = "0.29"
-crossterm = "0.28"
-
-# Async runtime
-tokio = { version = "1", features = ["full"] }
 
 [dev-dependencies]
 criterion = "0.5"

@@ -1,0 +1,142 @@
+use crate::timing::HighResTimer;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
+use std::thread;
+
+/// High-precision MIDI clock that generates ticks at 24ppq
+pub struct Clock {
+    bpm: Arc<AtomicU64>,
+    running: Arc<AtomicBool>,
+    thread_handle: Option<thread::JoinHandle<()>>,
+}
+
+impl Clock {
+    /// Create a new clock with the given BPM
+    pub fn new(bpm: f64) -> Self {
+        Self {
+            bpm: Arc::new(AtomicU64::new(bpm.to_bits())),
+            running: Arc::new(AtomicBool::new(false)),
+            thread_handle: None,
+        }
+    }
+
+    /// Start the clock with a callback that fires on each tick (24ppq)
+    pub fn start<F>(&mut self, callback: F) -> Result<(), String>
+    where
+        F: Fn() + Send + 'static,
+    {
+        if self.running.load(Ordering::Relaxed) {
+            return Err("Clock already running".to_string());
+        }
+
+        self.running.store(true, Ordering::Relaxed);
+
+        let bpm = self.bpm.clone();
+        let running = self.running.clone();
+
+        let handle = thread::Builder::new()
+            .name("midi-clock".to_string())
+            .spawn(move || {
+                // Set real-time priority
+                #[cfg(target_os = "macos")]
+                {
+                    use thread_priority::*;
+                    let _ = set_current_thread_priority(ThreadPriority::Max);
+                }
+
+                let timer = HighResTimer::new();
+                let mut next_tick = timer.now_nanos();
+
+                while running.load(Ordering::Relaxed) {
+                    // Get current BPM
+                    let current_bpm = f64::from_bits(bpm.load(Ordering::Relaxed));
+
+                    // Calculate tick interval (24 ppq = 24 ticks per quarter note)
+                    let ticks_per_second = (current_bpm / 60.0) * 24.0;
+                    let tick_interval_ns = (1_000_000_000.0 / ticks_per_second) as u64;
+
+                    // Sleep until next tick
+                    timer.sleep_until(next_tick);
+
+                    // Fire callback
+                    callback();
+
+                    // Schedule next tick
+                    next_tick += tick_interval_ns;
+                }
+            })
+            .map_err(|e| format!("Failed to spawn clock thread: {}", e))?;
+
+        self.thread_handle = Some(handle);
+        Ok(())
+    }
+
+    /// Stop the clock
+    pub fn stop(&mut self) -> Result<(), String> {
+        if !self.running.load(Ordering::Relaxed) {
+            return Ok(());
+        }
+
+        self.running.store(false, Ordering::Relaxed);
+
+        if let Some(handle) = self.thread_handle.take() {
+            handle
+                .join()
+                .map_err(|_| "Failed to join clock thread".to_string())?;
+        }
+
+        Ok(())
+    }
+
+    /// Set the BPM (can be called while running)
+    pub fn set_bpm(&self, bpm: f64) {
+        self.bpm.store(bpm.to_bits(), Ordering::Relaxed);
+    }
+
+    /// Get the current BPM
+    pub fn bpm(&self) -> f64 {
+        f64::from_bits(self.bpm.load(Ordering::Relaxed))
+    }
+}
+
+impl Drop for Clock {
+    fn drop(&mut self) {
+        let _ = self.stop();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::AtomicU32;
+    use std::time::Duration;
+
+    #[test]
+    fn test_clock_basic() {
+        let mut clock = Clock::new(120.0);
+        assert_eq!(clock.bpm(), 120.0);
+
+        let counter = Arc::new(AtomicU32::new(0));
+        let counter_clone = counter.clone();
+
+        clock.start(move || {
+            counter_clone.fetch_add(1, Ordering::Relaxed);
+        }).unwrap();
+
+        thread::sleep(Duration::from_millis(100));
+
+        clock.stop().unwrap();
+
+        let count = counter.load(Ordering::Relaxed);
+        // At 120 BPM, 24ppq: (120/60)*24 = 48 ticks/sec
+        // In 100ms: ~4-5 ticks (allowing for timing variance)
+        assert!(count >= 3 && count <= 6, "Expected 3-6 ticks, got {}", count);
+    }
+
+    #[test]
+    fn test_clock_bpm_change() {
+        let mut clock = Clock::new(120.0);
+        clock.set_bpm(140.0);
+        assert_eq!(clock.bpm(), 140.0);
+    }
+}

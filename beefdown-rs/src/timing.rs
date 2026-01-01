@@ -1,4 +1,7 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
+
+#[cfg(not(target_os = "macos"))]
+use std::time::Instant;
 
 #[cfg(target_os = "macos")]
 use mach2::mach_time::{mach_absolute_time, mach_timebase_info, mach_timebase_info_data_t};
