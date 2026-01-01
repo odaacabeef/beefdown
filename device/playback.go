@@ -2,6 +2,7 @@ package device
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -73,15 +74,28 @@ func (d *Device) playPrimary(a *sequence.Arrangement) {
 	d.beat = time.Duration(float64(time.Minute) / d.bpm)
 
 	defer func() {
-		if d.ticker != nil {
-			d.ticker.Stop()
+		// Recover from any panics to ensure cleanup always happens
+		if r := recover(); r != nil {
+			d.errorsCh <- fmt.Errorf("panic in playback: %v", r)
 		}
+
+		// Stop the clock first
+		if d.clock != nil {
+			if err := d.clock.Stop(); err != nil {
+				d.errorsCh <- fmt.Errorf("failed to stop clock: %w", err)
+			}
+		}
+
+		// Update state
 		d.state.stop()
 		d.StopSub.Pub()
+
+		// Send MIDI stop if in leader mode
 		if d.sync == "leader" {
 			d.sendSync(midi.Stop())
 		}
-		// silence all channels
+
+		// Always silence all channels to prevent stuck notes
 		for _, m := range midi.SilenceChannel(-1) {
 			d.sendTrack(m)
 		}
@@ -92,43 +106,56 @@ func (d *Device) playPrimary(a *sequence.Arrangement) {
 	// Handle different sync modes
 	switch d.sync {
 	case "leader":
-		// Leader mode: use internal ticker and send sync messages
-		d.ticker = time.NewTicker(d.beat / 24.0)
+		// Leader mode: use Rust clock and send sync messages
+		clock, err := NewRustClock(d.bpm)
+		if err != nil {
+			d.errorsCh <- fmt.Errorf("failed to create clock: %w", err)
+			return
+		}
+		d.clock = clock
+
+		err = d.clock.Start(func() {
+			d.ClockSub.Pub()
+			d.sendSync(midi.TimingClock())
+		})
+		if err != nil {
+			d.errorsCh <- fmt.Errorf("failed to start clock: %w", err)
+			return
+		}
+
 		d.sendSync(midi.Start())
 	case "follower":
 		// Follower mode: MIDI listener is already started during initialization
 		// No additional setup needed here
 	default:
-		// No sync mode: use internal ticker only
-		d.ticker = time.NewTicker(d.beat / 24.0)
+		// No sync mode: use Rust clock only
+		clock, err := NewRustClock(d.bpm)
+		if err != nil {
+			d.errorsCh <- fmt.Errorf("failed to create clock: %w", err)
+			return
+		}
+		d.clock = clock
+
+		err = d.clock.Start(func() {
+			d.ClockSub.Pub()
+		})
+		if err != nil {
+			d.errorsCh <- fmt.Errorf("failed to start clock: %w", err)
+			return
+		}
 	}
 
 	done := make(chan struct{})
 	go d.playRecursive(a, &done)
 
 	for {
-		if d.sync == "follower" {
-			// In follower mode, only listen for context cancellation and done
-			// d.ClockSub.Pub() called in handleSyncMessage
-			select {
-			case <-d.ctx.Done():
-				return
-			case <-done:
-				return
-			}
-		} else {
-			// In leader or no-sync mode, listen for ticker events
-			select {
-			case <-d.ctx.Done():
-				return
-			case <-d.ticker.C:
-				d.ClockSub.Pub()
-				if d.sync == "leader" {
-					d.sendSync(midi.TimingClock())
-				}
-			case <-done:
-				return
-			}
+		// The Rust clock calls ClockSub.Pub() directly via callback
+		// We just wait for context cancellation or done signal
+		select {
+		case <-d.ctx.Done():
+			return
+		case <-done:
+			return
 		}
 	}
 }
