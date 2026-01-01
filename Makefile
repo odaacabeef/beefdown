@@ -13,8 +13,8 @@ else
 	LIB_INSTALL_DIR := /usr/local/lib
 endif
 
-RUST_LIB := rust/target/release/libbeefdown_clock.$(LIB_EXT)
-RUST_LIB_NAME := libbeefdown_clock.$(LIB_EXT)
+RUST_LIB := rust/target/release/libbeefdown.$(LIB_EXT)
+RUST_LIB_NAME := libbeefdown.$(LIB_EXT)
 
 # Default target: build everything
 all: build

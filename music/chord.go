@@ -1,17 +1,15 @@
 package music
 
-import "gitlab.com/gomidi/midi/v2"
-
 func Chord(note string, quality string) []uint8 {
 
 	oct := uint8(5)
 
 	cChords := map[string][]uint8{
-		"M":  {midi.C(oct), midi.E(oct), midi.G(oct)},
-		"m":  {midi.C(oct), midi.Eb(oct), midi.G(oct)},
-		"M7": {midi.C(oct), midi.E(oct), midi.G(oct), midi.B(oct)},
-		"m7": {midi.C(oct), midi.Eb(oct), midi.G(oct), midi.Bb(oct)},
-		"7":  {midi.C(oct), midi.E(oct), midi.G(oct), midi.Bb(oct)},
+		"M":  {C(oct), E(oct), G(oct)},
+		"m":  {C(oct), Eb(oct), G(oct)},
+		"M7": {C(oct), E(oct), G(oct), B(oct)},
+		"m7": {C(oct), Eb(oct), G(oct), Bb(oct)},
+		"7":  {C(oct), E(oct), G(oct), Bb(oct)},
 	}
 
 	var pitchOffset uint8

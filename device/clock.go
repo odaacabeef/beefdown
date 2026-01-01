@@ -1,7 +1,6 @@
 package device
 
 /*
-#cgo LDFLAGS: -L../rust/target/release -lbeefdown_clock
 #include "../rust/beefdown_clock.h"
 #include <stdlib.h>
 

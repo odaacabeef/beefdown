@@ -6,10 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/odaacabeef/beefdown/midi"
 	"github.com/odaacabeef/beefdown/music"
 	partparser "github.com/odaacabeef/beefdown/sequence/parsers/part"
-
-	"gitlab.com/gomidi/midi/v2"
 )
 
 type Part struct {
@@ -26,14 +25,14 @@ type Part struct {
 
 	duration time.Duration
 
-	offMessages map[int][]midi.Message
+	offMessages map[int][][]byte
 
 	warnings []string
 }
 
 type partStep struct {
-	On  []midi.Message
-	Off []midi.Message
+	On  [][]byte
+	Off [][]byte
 }
 
 func (p *Part) parseMIDI() (err error) {
@@ -50,7 +49,7 @@ func (p *Part) parseMIDI() (err error) {
 	p.StepMIDI = make([]partStep, totalSteps)
 
 	stepIdx := 0
-	p.offMessages = map[int][]midi.Message{}
+	p.offMessages = map[int][][]byte{}
 
 	var stepsMult []step
 	for _, sd := range p.steps {
@@ -76,7 +75,7 @@ func (p *Part) parseMIDI() (err error) {
 					offIdx := stepIdx + n.Duration
 					endOfBeat := offIdx*p.Div() - 1
 					if endOfBeat <= len(p.StepMIDI)*p.Div() {
-						p.offMessages[endOfBeat] = append(p.offMessages[endOfBeat], midi.NoteOff(p.channel-1, *note))
+						p.offMessages[endOfBeat] = append(p.offMessages[endOfBeat], midi.NoteOff(p.channel-1, *note, 0))
 					}
 				}
 
@@ -87,7 +86,7 @@ func (p *Part) parseMIDI() (err error) {
 						offIdx := stepIdx + n.Duration
 						endOfBeat := offIdx*p.Div() - 1
 						if endOfBeat <= len(p.StepMIDI)*p.Div() {
-							p.offMessages[endOfBeat] = append(p.offMessages[endOfBeat], midi.NoteOff(p.channel-1, note))
+							p.offMessages[endOfBeat] = append(p.offMessages[endOfBeat], midi.NoteOff(p.channel-1, note, 0))
 						}
 					}
 				}
@@ -111,11 +110,17 @@ func (p *Part) parseMIDI() (err error) {
 				if j%*modulo == 0 {
 					// Deep copy the original step
 					newStep := partStep{
-						On:  make([]midi.Message, len(originalStep.On)),
-						Off: make([]midi.Message, len(originalStep.Off)),
+						On:  make([][]byte, len(originalStep.On)),
+						Off: make([][]byte, len(originalStep.Off)),
 					}
-					copy(newStep.On, originalStep.On)
-					copy(newStep.Off, originalStep.Off)
+					for i := range originalStep.On {
+						newStep.On[i] = make([]byte, len(originalStep.On[i]))
+						copy(newStep.On[i], originalStep.On[i])
+					}
+					for i := range originalStep.Off {
+						newStep.Off[i] = make([]byte, len(originalStep.Off[i]))
+						copy(newStep.Off[i], originalStep.Off[i])
+					}
 					p.StepMIDI[stepIdx] = newStep
 				} else {
 					p.StepMIDI[stepIdx] = partStep{}
@@ -124,11 +129,17 @@ func (p *Part) parseMIDI() (err error) {
 				// No modulo specified, repeat the step normally
 				// Deep copy the original step
 				newStep := partStep{
-					On:  make([]midi.Message, len(originalStep.On)),
-					Off: make([]midi.Message, len(originalStep.Off)),
+					On:  make([][]byte, len(originalStep.On)),
+					Off: make([][]byte, len(originalStep.Off)),
 				}
-				copy(newStep.On, originalStep.On)
-				copy(newStep.Off, originalStep.Off)
+				for i := range originalStep.On {
+					newStep.On[i] = make([]byte, len(originalStep.On[i]))
+					copy(newStep.On[i], originalStep.On[i])
+				}
+				for i := range originalStep.Off {
+					newStep.Off[i] = make([]byte, len(originalStep.Off[i]))
+					copy(newStep.Off[i], originalStep.Off[i])
+				}
 				p.StepMIDI[stepIdx] = newStep
 			}
 			stepsMult = append(stepsMult, "")

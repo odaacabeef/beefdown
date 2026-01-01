@@ -2,7 +2,7 @@
 
 Beefdown uses a hybrid Go + Rust architecture:
 - **Go**: TUI, parsing, sequence management
-- **Rust**: High-precision MIDI clock (6.2x better timing)
+- **Rust**: High-precision MIDI clock + MIDI I/O (6.2x better timing, no C++ dependencies)
 
 ## Quick Start
 
@@ -32,7 +32,7 @@ make clean
 
 ## What `make install` Does
 
-1. **Builds Rust library** (`libbeefdown_clock.dylib`)
+1. **Builds Rust library** (`libbeefdown.dylib`)
    - Uses `cargo build --release` in `rust/`
    - Creates optimized library in `rust/target/release/`
    - **Library stays in project directory** (not installed system-wide)
@@ -86,7 +86,7 @@ make clean
 
 ## Troubleshooting
 
-### "ld: library not found for -lbeefdown_clock"
+### "ld: library not found for -lbeefdown"
 
 The Rust library hasn't been built yet.
 
@@ -96,7 +96,7 @@ The Rust library hasn't been built yet.
 make rust-lib
 
 # Check if library exists
-ls rust/target/release/libbeefdown_clock.dylib
+ls rust/target/release/libbeefdown.dylib
 
 # Then build Go binary
 go build
@@ -148,16 +148,22 @@ beefdown/
 │   └── build.md          # Build documentation
 ├── *.go                  # Go source (TUI, parsing, etc.)
 ├── device/
-│   └── clock.go          # CGo wrapper for Rust clock
-└── rust/                 # Rust timing library
+│   ├── clock.go          # CGo wrapper for Rust clock
+│   ├── midi.go           # CGo wrapper for Rust MIDI
+│   └── cgo.go            # Shared CGo linker flags
+├── midi/
+│   └── messages.go       # MIDI message helpers
+└── rust/                 # Rust timing + MIDI library
     ├── Cargo.toml
-    ├── beefdown_clock.h  # C header
+    ├── beefdown_clock.h  # C header for clock
+    ├── beefdown_midi.h   # C header for MIDI
     ├── src/
     │   ├── lib.rs        # FFI exports
     │   ├── clock.rs      # Clock implementation
+    │   ├── midi.rs       # MIDI I/O (midir wrapper)
     │   └── timing.rs     # High-res timer
     └── target/release/
-        └── libbeefdown_clock.dylib
+        └── libbeefdown.dylib
 ```
 
 ## CI/CD
@@ -192,6 +198,7 @@ This matters for tight MIDI timing and sync with DAWs.
 
 ## Further Reading
 
-- [rust/README.md](rust/README.md) - Rust clock library documentation
-- [Makefile](Makefile) - Build system source
-- [device/clock.go](device/clock.go) - Go FFI wrapper implementation
+- [rust/README.md](../rust/README.md) - Rust library documentation (clock + MIDI)
+- [Makefile](../Makefile) - Build system source
+- [device/clock.go](../device/clock.go) - Go FFI wrapper for clock
+- [device/midi.go](../device/midi.go) - Go FFI wrapper for MIDI
