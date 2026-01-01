@@ -1,8 +1,8 @@
 package device
 
 /*
-#cgo LDFLAGS: -L../beefdown-rs/target/release -lbeefdown_clock
-#include "../beefdown-rs/beefdown_clock.h"
+#cgo LDFLAGS: -L../rust/target/release -lbeefdown_clock
+#include "../rust/beefdown_clock.h"
 #include <stdlib.h>
 
 extern void clockTickCallback(void* userData);

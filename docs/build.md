@@ -33,8 +33,8 @@ make clean
 ## What `make install` Does
 
 1. **Builds Rust library** (`libbeefdown_clock.dylib`)
-   - Uses `cargo build --release` in `beefdown-rs/`
-   - Creates optimized library in `beefdown-rs/target/release/`
+   - Uses `cargo build --release` in `rust/`
+   - Creates optimized library in `rust/target/release/`
    - **Library stays in project directory** (not installed system-wide)
 
 2. **Installs Go binary**
@@ -43,7 +43,7 @@ make clean
    - Installs to `$GOPATH/bin/beefdown` (usually `~/go/bin/`)
    - Binary contains reference to local library path
 
-**Important**: Keep the project directory intact after installation. The binary needs the Rust library in `beefdown-rs/target/release/` to run.
+**Important**: Keep the project directory intact after installation. The binary needs the Rust library in `rust/target/release/` to run.
 
 ## Platform Support
 
@@ -63,7 +63,7 @@ make clean
 
 ```bash
 # 1. Build Rust library
-cd beefdown-rs
+cd rust
 cargo build --release
 cd ..
 
@@ -96,7 +96,7 @@ The Rust library hasn't been built yet.
 make rust-lib
 
 # Check if library exists
-ls beefdown-rs/target/release/libbeefdown_clock.dylib
+ls rust/target/release/libbeefdown_clock.dylib
 
 # Then build Go binary
 go build
@@ -144,11 +144,12 @@ ldd ~/go/bin/beefdown
 ```
 beefdown/
 ├── Makefile              # Unified build system
-├── BUILD.md              # This file
+├── docs/
+│   └── build.md          # Build documentation
 ├── *.go                  # Go source (TUI, parsing, etc.)
 ├── device/
 │   └── rust_clock.go     # CGo wrapper for Rust clock
-└── beefdown-rs/          # Rust timing library
+└── rust/                 # Rust timing library
     ├── Cargo.toml
     ├── beefdown_clock.h  # C header
     ├── src/
@@ -191,6 +192,6 @@ This matters for tight MIDI timing and sync with DAWs.
 
 ## Further Reading
 
-- [GO_INTEGRATION.md](beefdown-rs/GO_INTEGRATION.md) - How the FFI works
-- [beefdown-rs/README.md](beefdown-rs/README.md) - Rust library docs
+- [GO_INTEGRATION.md](rust/GO_INTEGRATION.md) - How the FFI works
+- [rust/README.md](rust/README.md) - Rust library docs
 - [Makefile](Makefile) - Build system source

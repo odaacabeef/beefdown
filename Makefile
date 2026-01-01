@@ -13,7 +13,7 @@ else
 	LIB_INSTALL_DIR := /usr/local/lib
 endif
 
-RUST_LIB := beefdown-rs/target/release/libbeefdown_clock.$(LIB_EXT)
+RUST_LIB := rust/target/release/libbeefdown_clock.$(LIB_EXT)
 RUST_LIB_NAME := libbeefdown_clock.$(LIB_EXT)
 
 # Default target: build everything
@@ -27,7 +27,7 @@ build: rust-lib
 # Build the Rust library
 rust-lib:
 	@echo "Building Rust library..."
-	cd beefdown-rs && cargo build --release
+	cd rust && cargo build --release
 
 # Run tests for both Go and Rust
 test: rust-lib
@@ -36,7 +36,7 @@ test: rust-lib
 	go test ./sequence/parsers/metadata
 	go test ./sequence/parsers/part
 	@echo "Running Rust tests..."
-	cd beefdown-rs && cargo test --release
+	cd rust && cargo test --release
 
 # Install the Go binary (library stays in project directory)
 install: rust-lib
@@ -55,7 +55,7 @@ clean:
 	@echo "Cleaning Go build cache..."
 	go clean
 	@echo "Cleaning Rust build artifacts..."
-	cd beefdown-rs && cargo clean
+	cd rust && cargo clean
 	@echo "✅ Clean complete!"
 
 # Uninstall the Go binary (library is local, so just clean it)
