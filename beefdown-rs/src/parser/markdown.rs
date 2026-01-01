@@ -26,20 +26,30 @@ impl CodeBlock {
 }
 
 pub fn extract_blocks(markdown: &str) -> Result<Vec<CodeBlock>, String> {
-    let re = Regex::new(r"(?sm)^```beef\.(part|sequence|arrangement)\n(.*?)\n```")
+    // Regex now captures optional metadata on the fence line
+    let re = Regex::new(r"(?sm)^```beef\.(part|sequence|arrangement)([^\n]*)\n(.*?)^```")
         .map_err(|e| format!("Regex compilation error: {}", e))?;
 
     let mut blocks = Vec::new();
-    let lines: Vec<&str> = markdown.lines().collect();
 
     for cap in re.captures_iter(markdown) {
         let kind_str = cap.get(1)
             .ok_or("Missing block kind")?
             .as_str();
-        let content = cap.get(2)
-            .ok_or("Missing block content")?
+        let fence_metadata = cap.get(2)
+            .ok_or("Missing fence metadata")?
             .as_str()
-            .to_string();
+            .trim();
+        let body_content = cap.get(3)
+            .ok_or("Missing block content")?
+            .as_str();
+
+        // Combine metadata from fence line (if any) with body content
+        let content = if fence_metadata.is_empty() {
+            body_content.to_string()
+        } else {
+            format!("{}\n{}", fence_metadata, body_content)
+        };
 
         // Determine line number by finding match position
         let match_start = cap.get(0)
@@ -78,8 +88,7 @@ mod tests {
 
 This is a cool bass line.
 
-```beef.part
-.part name:bass ch:2 div:24
+```beef.part name:bass ch:2 div:24
 c2:4
 e2:4
 g2:4
@@ -99,16 +108,14 @@ More text here.
         let markdown = r#"# Song
 
 ```beef.sequence
-.sequence name:MySong bpm:120
+bpm:120
 ```
 
-```beef.part
-.part name:melody ch:1
+```beef.part name:melody ch:1
 c4:2
 ```
 
-```beef.arrangement
-.arrangement name:verse
+```beef.arrangement name:verse
 part:melody
 ```
 "#;
@@ -123,18 +130,16 @@ part:melody
     fn test_line_numbers() {
         let markdown = r#"Line 1
 Line 2
-```beef.part
-.part name:test
+```beef.part name:test
 ```
-Line 6
-```beef.part
-.part name:test2
+Line 5
+```beef.part name:test2
 ```
 "#;
         let blocks = extract_blocks(markdown).unwrap();
         assert_eq!(blocks.len(), 2);
         assert_eq!(blocks[0].line_number, 3);
-        assert_eq!(blocks[1].line_number, 7);
+        assert_eq!(blocks[1].line_number, 6);
     }
 
     #[test]
@@ -146,8 +151,7 @@ Line 6
 
     #[test]
     fn test_multiline_content() {
-        let markdown = r#"```beef.part
-.part name:test ch:1 div:24
+        let markdown = r#"```beef.part name:test ch:1 div:24
 c4:2
 d4:2
 e4:4
@@ -158,7 +162,7 @@ CM7:4
         assert_eq!(blocks.len(), 1);
         let lines: Vec<&str> = blocks[0].content.lines().collect();
         assert_eq!(lines.len(), 6);
-        assert_eq!(lines[0], ".part name:test ch:1 div:24");
+        assert_eq!(lines[0], "name:test ch:1 div:24");
         assert_eq!(lines[5], "*2");
     }
 }

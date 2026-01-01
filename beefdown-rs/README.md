@@ -1,36 +1,101 @@
-# beefdown-rs
+# beefdown-rs 🎵
 
-Rust rewrite of beefdown with improved timing accuracy and real-time performance.
+A high-performance MIDI sequencer with precise timing, written in Rust. Beefdown loads musical sequences from markdown files and plays them back with sub-millisecond timing accuracy.
 
-## Current Status
+## Features
 
-**Phase 1: Timing PoC** ✅ Complete
-- High-resolution timers using `mach_absolute_time()` on macOS
-- MIDI clock with drift compensation
-- Real-time thread priorities
-- Timing accuracy benchmarks
-- **Result**: 6.2x better timing accuracy than Go
+- 🎯 **Precise Timing** - 6.2x better than Go (0.126ms vs 0.786ms error)
+- 🎹 **MIDI I/O** - Virtual and hardware MIDI ports
+- 🔄 **Sync Modes** - Leader, Follower, or None
+- 📝 **Markdown Sequences** - Write music in beefdown notation
+- 🎨 **Terminal UI** - Interactive TUI with vim-style navigation
+- ⚡ **Real-Time** - Real-time thread priorities for consistent performance
+- 🔥 **Hot Reload** - Edit sequences while running
+- 🎵 **Music Theory** - Automatic note and chord conversion
 
-**Phase 2: MIDI Engine** ✅ Complete
-- MIDI I/O with `midir`
-- Virtual MIDI ports creation and connection
-- Leader mode: Send MIDI clock sync messages
-- Follower mode: Receive external MIDI clock
-- Device management with play/stop/config
-- Event subscription system
+## Project Status
 
-**Phase 3: Sequence Engine** (Not Started)
-- Beefdown parser (markdown + code blocks)
-- Sequence/arrangement data structures
+- ✅ **Phase 1: Timing Engine** - Complete
+- ✅ **Phase 2: MIDI Engine** - Complete
+- ✅ **Phase 3: Sequence Engine** - Complete
+- ✅ **Phase 4: Terminal UI** - Complete
 
-**Phase 4: TUI** (Not Started)
-- Option A: Keep Go TUI, use FFI/IPC
-- Option B: Rewrite with `ratatui`
+All phases are now complete! You can use beefdown-rs as a full-featured MIDI sequencer.
+
+## Installation
+
+### Option 1: Install System-Wide (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/odaacabeef/beefdown
+cd beefdown/beefdown-rs
+
+# Install to ~/.cargo/bin (automatically in PATH)
+cargo install --path .
+
+# Now you can run from anywhere:
+beefdown ~/Music/my-song.md
+```
+
+### Option 2: Build Locally
+
+```bash
+# Clone and build
+git clone https://github.com/odaacabeef/beefdown
+cd beefdown/beefdown-rs
+cargo build --release
+
+# Run the TUI with example sequence
+./target/release/beefdown examples/example_song.md
+
+# Or use cargo (--release is required for timing accuracy)
+cargo run --release -- examples/example_song.md
+```
+
+### Option 3: Install from Git (Coming Soon)
+
+```bash
+# Once published, you'll be able to install directly:
+cargo install --git https://github.com/odaacabeef/beefdown beefdown-rs
+```
+
+### Managing Installation
+
+```bash
+# Check if installed and see version
+which beefdown
+beefdown --version  # (if version flag is added)
+
+# Update installation
+cd beefdown/beefdown-rs
+git pull
+cargo install --path . --force
+
+# Uninstall
+cargo uninstall beefdown
+```
+
+## TUI Controls
+
+```
+Navigation:
+  h/←  - Move left      0    - First part
+  j/↓  - Move down      $    - Last part
+  k/↑  - Move up        g    - First group
+  l/→  - Move right     G    - Last group
+
+Playback:
+  Space - Toggle play/stop
+
+Development:
+  R     - Reload sequence
+  q     - Quit (or Ctrl+C)
+```
 
 ## Building
 
 ```bash
-cd beefdown-rs
 cargo build --release
 ```
 

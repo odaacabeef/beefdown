@@ -38,7 +38,10 @@ impl Sequence {
 
     /// Load a sequence from a markdown file
     pub fn from_file(path: impl Into<String>) -> Result<Self, String> {
-        use crate::parser::{extract_blocks_from_file, parse_part, parse_sequence_metadata, parse_arrangement, BlockKind};
+        use crate::parser::{
+            extract_blocks_from_file, parse_part, parse_sequence_metadata,
+            parse_arrangement_entries, resolve_arrangement, ArrangementEntry, BlockKind
+        };
 
         let path_str = path.into();
         let blocks = extract_blocks_from_file(&path_str)?;
@@ -65,12 +68,26 @@ impl Sequence {
             }
         }
 
-        // Second pass: parse arrangements (need parts to be parsed first)
+        // Second pass: parse arrangement entries (without resolving references yet)
+        let mut arrangement_entries: Vec<(String, String, Vec<ArrangementEntry>)> = Vec::new();
         for block in &blocks {
             if let BlockKind::Arrangement = block.kind {
-                let arrangement = parse_arrangement(&block.content, &parts_map)?;
-                sequence.arrangements.push(arrangement);
+                let (name, group, entries) = parse_arrangement_entries(&block.content)?;
+                arrangement_entries.push((name, group, entries));
             }
+        }
+
+        // Third pass: resolve all arrangement references
+        for (name, group, entries) in &arrangement_entries {
+            let arrangement = resolve_arrangement(
+                name,
+                group,
+                entries,
+                &parts_map,
+                &arrangement_entries,
+                0,
+            )?;
+            sequence.arrangements.push(arrangement);
         }
 
         Ok(sequence)

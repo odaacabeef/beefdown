@@ -3,6 +3,10 @@ name = "beefdown-rs"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "beefdown"
+path = "src/main.rs"
+
 [dependencies]
 # MIDI I/O
 midir = "0.10"
@@ -17,8 +21,12 @@ mach2 = "0.4"
 # Parsing
 regex = "1.10"
 
-# Async runtime (for future use)
-tokio = { version = "1", features = ["full"], optional = true }
+# TUI
+ratatui = "0.29"
+crossterm = "0.28"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
 
 [dev-dependencies]
 criterion = "0.5"
