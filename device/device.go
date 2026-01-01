@@ -22,7 +22,7 @@ type Device struct {
 	beat  time.Duration
 	state state
 
-	clock *RustClock
+	clock *Clock
 
 	ctx     context.Context
 	CancelF context.CancelFunc

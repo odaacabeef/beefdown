@@ -46,13 +46,13 @@ This creates:
 
 ## Integration with Go
 
-This library is already integrated with the Go application via CGo in `device/rust_clock.go`.
+This library is already integrated with the Go application via CGo in `device/clock.go`.
 
 Usage example:
 
 ```go
 // Create clock
-clock := NewRustClock(120.0)  // 120 BPM
+clock := NewClock(120.0)  // 120 BPM
 
 // Start with callback
 clock.Start(func() {

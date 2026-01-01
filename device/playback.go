@@ -107,7 +107,7 @@ func (d *Device) playPrimary(a *sequence.Arrangement) {
 	switch d.sync {
 	case "leader":
 		// Leader mode: use Rust clock and send sync messages
-		clock, err := NewRustClock(d.bpm)
+		clock, err := NewClock(d.bpm)
 		if err != nil {
 			d.errorsCh <- fmt.Errorf("failed to create clock: %w", err)
 			return
@@ -129,7 +129,7 @@ func (d *Device) playPrimary(a *sequence.Arrangement) {
 		// No additional setup needed here
 	default:
 		// No sync mode: use Rust clock only
-		clock, err := NewRustClock(d.bpm)
+		clock, err := NewClock(d.bpm)
 		if err != nil {
 			d.errorsCh <- fmt.Errorf("failed to create clock: %w", err)
 			return
