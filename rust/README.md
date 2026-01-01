@@ -1,4 +1,4 @@
-# beefdown-rs
+# Beefdown Rust Clock
 
 High-precision MIDI clock library for Beefdown, written in Rust.
 
@@ -46,9 +46,9 @@ This creates:
 
 ## Integration with Go
 
-See [GO_INTEGRATION.md](GO_INTEGRATION.md) for complete integration guide.
+This library is already integrated with the Go application via CGo in `device/rust_clock.go`.
 
-Quick example:
+Usage example:
 
 ```go
 // Create clock
@@ -97,13 +97,12 @@ go test ./device
 ## Project Structure
 
 ```
-beefdown-rs/
+rust/
 ├── src/
 │   ├── lib.rs          # FFI interface (clock_new, clock_start, etc.)
 │   ├── clock.rs        # High-precision clock implementation
 │   └── timing.rs       # Platform-specific timing (mach_absolute_time)
 ├── beefdown_clock.h    # C header for Go
-├── GO_INTEGRATION.md   # Integration guide
 ├── Cargo.toml          # Build configuration
 └── README.md           # This file
 ```

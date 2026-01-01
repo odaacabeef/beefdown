@@ -192,6 +192,6 @@ This matters for tight MIDI timing and sync with DAWs.
 
 ## Further Reading
 
-- [GO_INTEGRATION.md](rust/GO_INTEGRATION.md) - How the FFI works
-- [rust/README.md](rust/README.md) - Rust library docs
+- [rust/README.md](rust/README.md) - Rust clock library documentation
 - [Makefile](Makefile) - Build system source
+- [device/rust_clock.go](device/rust_clock.go) - Go FFI wrapper implementation
