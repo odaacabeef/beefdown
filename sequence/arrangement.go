@@ -74,7 +74,6 @@ func (a *Arrangement) parsePlayables(s Sequence) (err error) {
 // beat of the step where the note they control ends.
 func (a *Arrangement) appendSyncParts() {
 
-partsOnly:
 	for i, stepPlayables := range a.Playables {
 		var mostBeats int
 		for _, playable := range stepPlayables {
@@ -86,7 +85,8 @@ partsOnly:
 					mostBeats = beats
 				}
 			case *Arrangement:
-				continue partsOnly
+				// Skip arrangements - they handle their own timing recursively
+				continue
 			}
 		}
 		p := &Part{
@@ -94,9 +94,11 @@ partsOnly:
 			StepMIDI: make([]partStep, mostBeats),
 		}
 		for _, playable := range stepPlayables {
-			part := playable.(*Part)
-			for i, msgs := range part.offMessages {
-				p.StepMIDI[i].Off = append(p.StepMIDI[i].Off, msgs...)
+			// Only aggregate offMessages from Parts, skip Arrangements
+			if part, ok := playable.(*Part); ok {
+				for i, msgs := range part.offMessages {
+					p.StepMIDI[i].Off = append(p.StepMIDI[i].Off, msgs...)
+				}
 			}
 		}
 		a.Playables[i] = append(a.Playables[i], p)
