@@ -42,13 +42,15 @@ type Device struct {
 }
 
 // New creates a new Device
-// If outputName is empty, it uses the default virtual output "beefdown"
-// If outputName is provided, it tries to connect to an existing MIDI output with that name
-func New(sync, outputName, inputName string) (*Device, error) {
+// If voiceOut is empty, it uses the default virtual output "beefdown"
+// If voiceOut is provided, it tries to connect to an existing MIDI output with that name
+// If syncOut is empty and sync is "leader", it creates a virtual output "beefdown-sync"
+// If syncOut is provided and sync is "leader", it connects to an existing MIDI output with that name
+func New(sync, voiceOut, syncIn, syncOut string) (*Device, error) {
 	var trackOut *MidiOutput
 	var err error
 
-	if outputName == "" {
+	if voiceOut == "" {
 		// Create virtual output
 		trackOut, err = NewVirtualOutput(deviceName)
 		if err != nil {
@@ -56,9 +58,9 @@ func New(sync, outputName, inputName string) (*Device, error) {
 		}
 	} else {
 		// Try to connect to existing output
-		trackOut, err = ConnectOutput(outputName)
+		trackOut, err = ConnectOutput(voiceOut)
 		if err != nil {
-			return nil, fmt.Errorf("failed to connect to MIDI output '%s': %w", outputName, err)
+			return nil, fmt.Errorf("failed to connect to MIDI output '%s': %w", voiceOut, err)
 		}
 	}
 
@@ -80,29 +82,38 @@ func New(sync, outputName, inputName string) (*Device, error) {
 
 	switch sync {
 	case "follower":
-		var syncIn *MidiInput
-		if inputName == "" {
+		var syncInPort *MidiInput
+		if syncIn == "" {
 			// Create virtual input
-			syncIn, err = NewVirtualInput(syncDeviceName)
+			syncInPort, err = NewVirtualInput(syncDeviceName)
 			if err != nil {
 				return nil, fmt.Errorf("failed to open virtual MIDI sync input: %w", err)
 			}
 		} else {
 			// Try to connect to existing input
-			syncIn, err = ConnectInput(inputName)
+			syncInPort, err = ConnectInput(syncIn)
 			if err != nil {
-				return nil, fmt.Errorf("failed to connect to MIDI input '%s': %w", inputName, err)
+				return nil, fmt.Errorf("failed to connect to MIDI input '%s': %w", syncIn, err)
 			}
 		}
-		d.syncIn = syncIn
+		d.syncIn = syncInPort
 
 	case "leader":
-		// Create dedicated virtual output for sync messages
-		syncOut, err := NewVirtualOutput(syncDeviceName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to open virtual MIDI sync output: %w", err)
+		var syncOutPort *MidiOutput
+		if syncOut == "" {
+			// Create dedicated virtual output for sync messages
+			syncOutPort, err = NewVirtualOutput(syncDeviceName)
+			if err != nil {
+				return nil, fmt.Errorf("failed to open virtual MIDI sync output: %w", err)
+			}
+		} else {
+			// Connect to existing MIDI output for sync messages
+			syncOutPort, err = ConnectOutput(syncOut)
+			if err != nil {
+				return nil, fmt.Errorf("failed to connect to MIDI sync output '%s': %w", syncOut, err)
+			}
 		}
-		d.syncOut = syncOut
+		d.syncOut = syncOutPort
 	}
 
 	return &d, nil

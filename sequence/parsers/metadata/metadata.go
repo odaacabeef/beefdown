@@ -27,11 +27,12 @@ const (
 
 // Metadata structs
 type SequenceMetadata struct {
-	BPM    float64
-	Loop   bool
-	Sync   string
-	Input  string
-	Output string
+	BPM      float64
+	Loop     bool
+	Sync     string
+	SyncIn   string
+	VoiceOut string
+	SyncOut  string
 }
 
 type PartMetadata struct {
@@ -404,11 +405,12 @@ func ParseSequenceMetadata(raw string) (SequenceMetadata, error) {
 
 	fp := newFieldParser(node)
 	return SequenceMetadata{
-		BPM:    fp.getNumber("bpm", 120),
-		Loop:   fp.getBoolean("loop", false),
-		Sync:   fp.getString("sync", "none"),
-		Input:  fp.getString("input", ""),
-		Output: fp.getString("output", ""),
+		BPM:      fp.getNumber("bpm", 120),
+		Loop:     fp.getBoolean("loop", false),
+		Sync:     fp.getString("sync", "none"),
+		SyncIn:   fp.getString("syncin", ""),
+		VoiceOut: fp.getString("voiceout", ""),
+		SyncOut:  fp.getString("syncout", ""),
 	}, nil
 }
 

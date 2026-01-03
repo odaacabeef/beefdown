@@ -12,51 +12,56 @@ func TestParseSequenceMetadata(t *testing.T) {
 		{
 			input: ".sequence\nbpm:120",
 			expected: SequenceMetadata{
-				BPM:    120,
-				Loop:   false,
-				Sync:   "none",
-				Input:  "",
-				Output: "",
+				BPM:      120,
+				Loop:     false,
+				Sync:     "none",
+				SyncIn:   "",
+				VoiceOut: "",
+				SyncOut:  "",
 			},
 		},
 		{
 			input: ".sequence\nbpm:150\nloop:true",
 			expected: SequenceMetadata{
-				BPM:    150,
-				Loop:   true,
-				Sync:   "none",
-				Input:  "",
-				Output: "",
+				BPM:      150,
+				Loop:     true,
+				Sync:     "none",
+				SyncIn:   "",
+				VoiceOut: "",
+				SyncOut:  "",
 			},
 		},
 		{
-			input: ".sequence\nbpm:100\nsync:leader\noutput:'Crumar Seven'",
+			input: ".sequence\nbpm:100\nsync:leader\nvoiceout:'Crumar Seven'",
 			expected: SequenceMetadata{
-				BPM:    100,
-				Loop:   false,
-				Sync:   "leader",
-				Input:  "",
-				Output: "Crumar Seven",
+				BPM:      100,
+				Loop:     false,
+				Sync:     "leader",
+				SyncIn:   "",
+				VoiceOut: "Crumar Seven",
+				SyncOut:  "",
 			},
 		},
 		{
-			input: ".sequence\nbpm:100\nsync:follower\ninput:'Ableton Live'",
+			input: ".sequence\nbpm:100\nsync:follower\nsyncin:'Ableton Live'",
 			expected: SequenceMetadata{
-				BPM:    100,
-				Loop:   false,
-				Sync:   "follower",
-				Input:  "Ableton Live",
-				Output: "",
+				BPM:      100,
+				Loop:     false,
+				Sync:     "follower",
+				SyncIn:   "Ableton Live",
+				VoiceOut: "",
+				SyncOut:  "",
 			},
 		},
 		{
 			input: "",
 			expected: SequenceMetadata{
-				BPM:    120,
-				Loop:   false,
-				Sync:   "none",
-				Input:  "",
-				Output: "",
+				BPM:      120,
+				Loop:     false,
+				Sync:     "none",
+				SyncIn:   "",
+				VoiceOut: "",
+				SyncOut:  "",
 			},
 		},
 	}
@@ -78,11 +83,14 @@ func TestParseSequenceMetadata(t *testing.T) {
 			if result.Sync != tt.expected.Sync {
 				t.Errorf("Sync = %s, want %s", result.Sync, tt.expected.Sync)
 			}
-			if result.Input != tt.expected.Input {
-				t.Errorf("Input = %s, want %s", result.Input, tt.expected.Input)
+			if result.SyncIn != tt.expected.SyncIn {
+				t.Errorf("SyncIn = %s, want %s", result.SyncIn, tt.expected.SyncIn)
 			}
-			if result.Output != tt.expected.Output {
-				t.Errorf("Output = %s, want %s", result.Output, tt.expected.Output)
+			if result.VoiceOut != tt.expected.VoiceOut {
+				t.Errorf("VoiceOut = %s, want %s", result.VoiceOut, tt.expected.VoiceOut)
+			}
+			if result.SyncOut != tt.expected.SyncOut {
+				t.Errorf("SyncOut = %s, want %s", result.SyncOut, tt.expected.SyncOut)
 			}
 		})
 	}
