@@ -11,11 +11,12 @@ import (
 type Sequence struct {
 	Path string
 
-	BPM    float64
-	Loop   bool
-	Sync   string
-	Input  string
-	Output string
+	BPM      float64
+	Loop     bool
+	Sync     string
+	SyncIn   string
+	VoiceOut string
+	SyncOut  string
 
 	Parts        []*Part
 	Arrangements []*Arrangement
@@ -137,8 +138,9 @@ func (s *Sequence) parse() error {
 	s.BPM = seqMeta.BPM
 	s.Loop = seqMeta.Loop
 	s.Sync = seqMeta.Sync
-	s.Input = seqMeta.Input
-	s.Output = seqMeta.Output
+	s.SyncIn = seqMeta.SyncIn
+	s.VoiceOut = seqMeta.VoiceOut
+	s.SyncOut = seqMeta.SyncOut
 
 	for _, p := range s.Playable {
 		p.calcDuration(s.BPM)

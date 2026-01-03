@@ -1,15 +1,15 @@
 # MIDI IO
 
-## Track Output
+## Voice Output
 
-By default, a virtual MIDI output is created called `beefdown` for sending note
-and control messages.
+By default, a virtual MIDI output is created called `beefdown` for sending voice
+messages.
 
 You can configure this output to use an existing device instead:
 
 ````
 ```beef.sequence
-output:'Crumar Seven'
+voiceout:'Crumar Seven'
 ```
 ````
 
@@ -20,8 +20,18 @@ The `sync` setting supports three options: `none`, `leader`, `follower`.
 ### Sync Output
 
 When `sync:leader` is set, MIDI sync messages (clock, start, stop) are sent to a
-dedicated virtual output called `beefdown-sync`. Separating sync from track
+dedicated virtual output called `beefdown-sync`. Separating sync from voice
 messages is intended to improve sync stability.
+
+You can also send sync messages to an existing midi port instead of creating a
+virtual output:
+
+````
+```beef.sequence
+sync:leader
+syncout:mc-in-b
+```
+````
 
 ### Sync Input
 
@@ -35,15 +45,15 @@ beefdown:
 ````
 ```beef.sequence
 sync:follower
-input:beefdown-sync
+syncin:beefdown-sync
 ```
 ````
 
 ### Ableton Live
 
-When synchronizing with a DAW like Live [^1], it's recommended to use the DAW as
-the leader. You can have beefdown lead, but it's less reliable in the context of
-recording. In either case, you'll likely need to adjust the sync delay [^2].
+https://help.ableton.com/hc/en-us/articles/209071149-Synchronizing-Live-via-MIDI
 
-[^1]: https://help.ableton.com/hc/en-us/articles/209071149-Synchronizing-Live-via-MIDI
-[^2]: https://www.ableton.com/en/manual/synchronizing-with-link-tempo-follower-and-midi/#sync-delay
+## midi-cable
+
+[odaacabeef/midi-cable](https://github.com/odaacabeef/midi-cable) is a project
+you could use to offload management of virtual ports.

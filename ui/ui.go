@@ -32,7 +32,7 @@ func initialModel(sequencePath string) (*model, error) {
 		return nil, err
 	}
 
-	d, err := device.New(m.sequence.Sync, m.sequence.Output, m.sequence.Input)
+	d, err := device.New(m.sequence.Sync, m.sequence.VoiceOut, m.sequence.SyncIn, m.sequence.SyncOut)
 	if err != nil {
 		return nil, err
 	}
