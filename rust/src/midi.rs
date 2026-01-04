@@ -30,6 +30,8 @@ pub struct MidiOutputPort {
 
 pub struct MidiInputPort {
     _connection: Option<MidiInputConnection<()>>,
+    port_name: String,
+    is_virtual: bool,
 }
 
 /// Create a virtual MIDI output port
@@ -125,6 +127,8 @@ pub fn create_virtual_input(name: &str) -> Result<i32, String> {
 
     let port = MidiInputPort {
         _connection: Some(_connection),
+        port_name: name.to_string(),
+        is_virtual: true,
     };
 
     let mut next_id = NEXT_INPUT_ID.lock().unwrap();
@@ -169,6 +173,8 @@ pub fn connect_input(name: &str) -> Result<i32, String> {
 
     let port = MidiInputPort {
         _connection: Some(_connection),
+        port_name: name.to_string(),
+        is_virtual: false,
     };
 
     let mut next_id = NEXT_INPUT_ID.lock().unwrap();
@@ -194,6 +200,10 @@ pub fn start_listening(
         .get_mut(&port_id)
         .ok_or_else(|| format!("Invalid input port ID: {}", port_id))?;
 
+    // Get stored port info
+    let port_name = port.port_name.clone();
+    let is_virtual = port.is_virtual;
+
     // Wrap user_data to make it Send
     let user_data = SendPtr(user_data);
 
@@ -201,26 +211,43 @@ pub fn start_listening(
     let midi_in = MidiInput::new("Beefdown")
         .map_err(|e| format!("Failed to create MIDI input: {}", e))?;
 
-    // Get available ports
-    let ports = midi_in.ports();
-    if ports.is_empty() {
-        return Err("No MIDI input ports available".to_string());
-    }
+    let _connection = if is_virtual {
+        // For virtual ports, recreate the virtual input
+        midi_in
+            .create_virtual(
+                &port_name,
+                move |stamp, message, _| {
+                    let timestamp_us = stamp as i64;
+                    callback(user_data.as_ptr(), message.as_ptr(), message.len(), timestamp_us);
+                },
+                (),
+            )
+            .map_err(|e| format!("Failed to recreate virtual input: {}", e))?
+    } else {
+        // For physical ports, find the port by name and connect
+        let ports = midi_in.ports();
+        let target_port = ports
+            .iter()
+            .find(|p| {
+                midi_in
+                    .port_name(p)
+                    .map(|n| n.contains(&port_name))
+                    .unwrap_or(false)
+            })
+            .ok_or_else(|| format!("MIDI input port '{}' not found", port_name))?;
 
-    // Use the first available port for now
-    // TODO: Store port info when creating/connecting to select the right one
-    let _connection = midi_in
-        .connect(
-            &ports[0],
-            "beefdown",
-            move |stamp, message, _| {
-                // stamp is already in microseconds
-                let timestamp_us = stamp as i64;
-                callback(user_data.as_ptr(), message.as_ptr(), message.len(), timestamp_us);
-            },
-            (),
-        )
-        .map_err(|e| format!("Failed to start listening: {}", e))?;
+        midi_in
+            .connect(
+                target_port,
+                "beefdown",
+                move |stamp, message, _| {
+                    let timestamp_us = stamp as i64;
+                    callback(user_data.as_ptr(), message.as_ptr(), message.len(), timestamp_us);
+                },
+                (),
+            )
+            .map_err(|e| format!("Failed to start listening: {}", e))?
+    };
 
     port._connection = Some(_connection);
     Ok(())
