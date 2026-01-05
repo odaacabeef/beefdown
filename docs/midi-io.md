@@ -29,7 +29,7 @@ virtual output:
 ````
 ```beef.sequence
 sync:leader
-syncout:mc-in-b
+syncout:mc-dest-b
 ```
 ````
 
