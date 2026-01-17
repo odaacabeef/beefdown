@@ -20,7 +20,7 @@ _See [docs/build.md](docs/build.md) for info on building `beefdown`._
 Code blocks with `beef` prefixed language identifiers are used to specify
 musical information.
 
-See [docs/controls.md](docs/controls.md) for application controls.
+_See [docs/controls.md](docs/controls.md) for application controls._
 
 ### Sequence
 
@@ -34,7 +34,7 @@ sync:none
 ```
 ````
 
-See [docs/sync.md](docs/sync.md) for more info on the `sync` setting.
+_See [docs/sync.md](docs/sync.md) for more info on the `sync` setting._
 
 ### Parts
 
@@ -113,8 +113,8 @@ gb1
 ````
 
 You can change the length of each beat with `div`. Recognized values are `4th`,
-`4th-triplet`, `8th`, `8th-triplet`, `16th`, and `32nd`. See
-[docs/division.md](docs/division.md) for more details on this.
+`4th-triplet`, `8th`, `8th-triplet`, `16th`, and `32nd`. _See
+[docs/division.md](docs/division.md) for more details on this._
 
 ````
 ```beef.part name:hh-2 group:drums ch:16 div:8th
@@ -201,8 +201,8 @@ c1
 
 All notes are sent with a velocity of 100.
 
-Parts also have basic chord support. Run
-[examples/chords-ii-v-i.md](examples/chords-ii-v-i.md) to see how that works.
+Parts also have basic chord support. _Run `beefdown examples/chords-ii-v-i.md`
+to see to see an example._
 
 ### Arrangements
 
