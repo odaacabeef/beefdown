@@ -34,7 +34,7 @@ sync:none
 ```
 ````
 
-_See [docs/sync.md](docs/sync.md) for more info on the `sync` setting._
+_See [docs/midi-io.md](docs/midi-io.md) for more info on the `sync` setting._
 
 ### Parts
 
