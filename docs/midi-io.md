@@ -38,7 +38,7 @@ syncout:mc-dest-b
 When `sync:follower` is set, a virtual input named `beefdown-sync` is created.
 This will show up in a DAW to be able to send sync messages to.
 
-You can configure the sequence `input` to instead listen to an existing source
+You can configure the sequence `syncin` to instead listen to an existing source
 of sync messages. For example, if you wanted to listen to a leader instance of
 beefdown:
 
@@ -57,3 +57,20 @@ https://help.ableton.com/hc/en-us/articles/209071149-Synchronizing-Live-via-MIDI
 
 [odaacabeef/midi-cable](https://github.com/odaacabeef/midi-cable) is a project
 you could use to offload management of virtual ports.
+
+A leader might look like this:
+
+```beef.sequence
+bpm:145
+voiceout:mc-dest-a
+sync:leader
+syncout:mc-dest-b
+```
+
+And its follower:
+
+```beef.sequence
+voiceout:mc-dest-a
+sync:follower
+syncin:mc-source-b
+```
