@@ -2,6 +2,9 @@
 
 A markdown-driven MIDI sequencer.
 
+Cross-platform with real-time scheduling optimizations on macOS for
+sub-millisecond timing accuracy.
+
 ## Sequences
 
 This file is a sequence. Run it with:
