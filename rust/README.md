@@ -29,7 +29,7 @@ Replaces gomidi (which wraps RtMidi C++) with pure Rust using `midir`:
 
 ## Architecture
 
-This library is **not** a standalone application. It's a shared library (`.dylib`/`.so`) that provides a C FFI interface for the Go application to call.
+This library is **not** a standalone application. It's a static library (`.a`) that provides a C FFI interface and is statically linked into the Go application.
 
 **What it does:**
 - Generates precise MIDI clock ticks at 24 pulses per quarter note (24ppq)
@@ -50,17 +50,17 @@ This handles **timing and MIDI I/O**.
 cargo build --release
 ```
 
-This creates:
-- macOS: `target/release/libbeefdown.dylib`
-- Linux: `target/release/libbeefdown.so`
-- Windows: `target/release/beefdown.dll`
+This creates a static library:
+- All platforms: `target/release/libbeefdown.a`
+
+The static library is embedded into the Go binary during compilation, creating a fully self-contained executable.
 
 ## Integration with Go
 
-This library is integrated with the Go application via CGo:
+This library is statically linked into the Go application via CGo:
 - `device/clock.go` - Clock FFI wrapper
 - `device/midi.go` - MIDI FFI wrapper
-- `device/cgo.go` - Shared CGo linker flags
+- `device/cgo.go` - CGo static linking configuration
 
 Usage examples:
 
@@ -174,14 +174,14 @@ rust/
 ## Platform Support
 
 ### Clock
-- ✅ **macOS** - Full support with `mach_absolute_time()`
-- ⚠️ **Linux** - Uses fallback `Instant` (less precise but still better than Go)
-- ⚠️ **Windows** - Not tested
+- ✅ **macOS** - Full support with `mach_absolute_time()` + Mach time-constraint policy (real-time scheduling)
+- ✅ **Linux** - Uses fallback `Instant` (less precise but still better than Go)
+- ✅ **Windows** - Uses fallback `Instant` (less precise but still better than Go)
 
 ### MIDI
 - ✅ **macOS** - Full support via CoreMIDI
 - ✅ **Linux** - Full support via ALSA
-- ⚠️ **Windows** - Should work but not tested
+- ✅ **Windows** - Full support via Windows MIDI API
 
 ## How It Works
 
@@ -193,12 +193,21 @@ let absolute_time = mach_absolute_time();
 let nanos = absolute_time * timebase.numer / timebase.denom;
 ```
 
-### 2. Real-Time Thread Priority
+### 2. Real-Time Thread Scheduling
 
 ```rust
-// Ensure OS prioritizes this thread
-set_current_thread_priority(ThreadPriority::Max);
+// macOS: Use Mach time-constraint policy for real-time guarantees
+// This prevents system interruptions from affecting timing
+let constraint = thread_time_constraint_policy_data_t {
+    period: nominal_ticks,
+    computation: nominal_ticks / 4,
+    constraint: nominal_ticks / 2,
+    preemptible: 1,
+};
+thread_policy_set(thread_port, THREAD_TIME_CONSTRAINT_POLICY, ...);
 ```
+
+This ensures the clock thread maintains timing accuracy even under heavy system load (e.g., launching browsers, running builds).
 
 ### 3. Absolute Time Scheduling
 
@@ -238,9 +247,10 @@ From timing benchmark (10,000 iterations at 120 BPM):
 
 Minimal and focused:
 - `thread-priority` - Set real-time thread priorities
-- `mach2` - macOS high-resolution timer API
+- `mach2` - macOS high-resolution timer API + Mach time-constraint policy
 - `midir` - Pure Rust MIDI I/O (cross-platform)
 - `lazy_static` - Global registries for FFI
+- `libc` - C types for pthread FFI
 
 That's it! No C++ dependencies.
 
@@ -279,14 +289,16 @@ Debug builds are too slow for precise timing.
 
 ### Go can't find the library
 
-Make sure the library is in the linker search path:
+Make sure the static library has been built:
 ```bash
 # Build the Rust library first
 cd rust && cargo build --release
 
 # Check it exists
-ls target/release/libbeefdown.dylib  # macOS
-ls target/release/libbeefdown.so     # Linux
+ls target/release/libbeefdown.a
+
+# Then build Go
+cd .. && go build
 ```
 
 ## Further Reading

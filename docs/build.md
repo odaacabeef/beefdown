@@ -4,6 +4,8 @@ Beefdown uses a hybrid Go + Rust architecture:
 - **Go**: TUI, parsing, sequence management
 - **Rust**: High-precision MIDI clock + MIDI I/O (6.2x better timing, no C++ dependencies)
 
+The Rust library is **statically linked** into the Go binary, creating a fully self-contained executable with no external dependencies.
+
 ## Quick Start
 
 ```bash
@@ -32,24 +34,26 @@ make clean
 
 ## What `make install` Does
 
-1. **Builds Rust library** (`libbeefdown.dylib`)
+1. **Builds Rust static library** (`libbeefdown.a`)
    - Uses `cargo build --release` in `rust/`
-   - Creates optimized library in `rust/target/release/`
-   - **Library stays in project directory** (not installed system-wide)
+   - Creates optimized static library in `rust/target/release/`
+   - Library code is embedded into the Go binary during compilation
 
 2. **Installs Go binary**
    - Runs `go install .`
-   - Links against the local Rust library via CGo
+   - Statically links the Rust library via CGo
    - Installs to `$GOPATH/bin/beefdown` (usually `~/go/bin/`)
-   - Binary contains reference to local library path
+   - Binary is fully self-contained with all Rust code embedded
 
-**Important**: Keep the project directory intact after installation. The binary needs the Rust library in `rust/target/release/` to run.
+**Benefit**: The installed binary is completely standalone. You can delete the project directory or distribute the binary without any dependencies.
 
 ## Platform Support
 
-- ✅ **macOS**: Full support
-- ⚠️ **Linux**: Requires CGo and a C compiler
-- ❌ **Windows**: Not yet supported
+- ✅ **macOS**: Full support with real-time scheduling optimizations
+- ✅ **Linux**: Full support (requires CGo and a C compiler)
+- ✅ **Windows**: Full support (requires CGo and a C compiler)
+
+All platforms use static linking to produce self-contained binaries. macOS includes additional real-time thread scheduling for sub-millisecond timing accuracy.
 
 ## Requirements
 
@@ -67,7 +71,7 @@ cd rust
 cargo build --release
 cd ..
 
-# 2. Build Go binary (links to local Rust library)
+# 2. Build Go binary (statically links Rust library)
 go install .
 ```
 
@@ -88,7 +92,7 @@ make clean
 
 ### "ld: library not found for -lbeefdown"
 
-The Rust library hasn't been built yet.
+The Rust static library hasn't been built yet.
 
 **Solution:**
 ```bash
@@ -96,7 +100,7 @@ The Rust library hasn't been built yet.
 make rust-lib
 
 # Check if library exists
-ls rust/target/release/libbeefdown.dylib
+ls rust/target/release/libbeefdown.a
 
 # Then build Go binary
 go build
@@ -121,22 +125,20 @@ Rust isn't installed.
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-### Binary can't find library at runtime
+### Verifying static linking
 
-If you moved the project directory after installation, the binary won't find the library.
+To confirm the binary is self-contained with no external Rust library dependencies:
 
-**Solution:**
 ```bash
-# Rebuild and reinstall from the correct location
-cd /path/to/beefdown
-make install
-
-# Or check where the binary is looking:
-# macOS:
+# macOS: Check for dynamic library dependencies
 otool -L ~/go/bin/beefdown
+# Should only show system libraries (libSystem, libresolv)
+# Should NOT show libbeefdown.dylib
 
-# Linux:
+# Linux: Check for dynamic library dependencies
 ldd ~/go/bin/beefdown
+# Should only show system libraries
+# Should NOT show libbeefdown.so
 ```
 
 ## Directory Structure
@@ -150,7 +152,7 @@ beefdown/
 ├── device/
 │   ├── clock.go          # CGo wrapper for Rust clock
 │   ├── midi.go           # CGo wrapper for Rust MIDI
-│   └── cgo.go            # Shared CGo linker flags
+│   └── cgo.go            # CGo static linking configuration
 ├── midi/
 │   └── messages.go       # MIDI message helpers
 └── rust/                 # Rust timing + MIDI library
@@ -161,9 +163,9 @@ beefdown/
     │   ├── lib.rs        # FFI exports
     │   ├── clock.rs      # Clock implementation
     │   ├── midi.rs       # MIDI I/O (midir wrapper)
-    │   └── timing.rs     # High-res timer
+    │   └── timing.rs     # High-res timer (mach_absolute_time on macOS)
     └── target/release/
-        └── libbeefdown.dylib
+        └── libbeefdown.a # Static library (embedded in Go binary)
 ```
 
 ## CI/CD
@@ -195,6 +197,26 @@ The Rust timing library provides **6.2x better accuracy**:
 | BPM variation  | ±7.07     | ±1.13         | 6.3x better |
 
 This matters for tight MIDI timing and sync with DAWs.
+
+### Real-Time Scheduling (macOS)
+
+On macOS, beefdown uses **Mach time-constraint policy** for real-time thread scheduling:
+- Prevents timing interference from other applications
+- Guarantees CPU time for the clock thread
+- Maintains accuracy even under heavy system load
+- No special permissions or system settings required
+
+## Static Linking Benefits
+
+Using static linking provides several advantages:
+
+✅ **Self-contained binary** - No external library dependencies
+✅ **Easy distribution** - Just copy the single executable
+✅ **No runtime path issues** - Works from any directory
+✅ **Simpler deployment** - No library installation required
+✅ **Version locking** - Rust code version is fixed at compile time
+
+**Trade-off**: Binary size increases by ~2MB compared to dynamic linking, but eliminates all runtime dependency management.
 
 ## Further Reading
 

@@ -10,10 +10,12 @@ sub-millisecond timing accuracy.
 This file is a sequence. Run it with:
 
 ```
-go run . README.md
+beefdown README.md
 ```
 
-![screenshot](/docs/screenshot.png)
+_See [docs/build.md](docs/build.md) for info on building `beefdown`._
+
+![screenshot](docs/screenshot.png)
 
 Code blocks with `beef` prefixed language identifiers are used to specify
 musical information.
