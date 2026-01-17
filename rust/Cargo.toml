@@ -13,6 +13,7 @@ thread-priority = "1.2"
 
 # High-resolution timing (macOS)
 mach2 = "0.4"
+libc = "0.2"
 
 # MIDI I/O
 midir = "0.10"

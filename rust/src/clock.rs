@@ -37,11 +37,49 @@ impl Clock {
         let handle = thread::Builder::new()
             .name("midi-clock".to_string())
             .spawn(move || {
-                // Set real-time priority
+                // Set real-time priority using Mach time-constraint policy
                 #[cfg(target_os = "macos")]
                 {
-                    use thread_priority::*;
-                    let _ = set_current_thread_priority(ThreadPriority::Max);
+                    use mach2::mach_time::{mach_timebase_info, mach_timebase_info_data_t};
+                    use mach2::thread_policy::*;
+
+                    unsafe {
+                        // Get the current thread's Mach port using pthread API
+                        extern "C" {
+                            fn pthread_mach_thread_np(pthread: libc::pthread_t) -> u32;
+                            fn pthread_self() -> libc::pthread_t;
+                        }
+                        let thread_port = pthread_mach_thread_np(pthread_self());
+
+                        // Get timebase for converting nanoseconds to absolute time units
+                        let mut timebase: mach_timebase_info_data_t = std::mem::zeroed();
+                        mach_timebase_info(&mut timebase as *mut _);
+
+                        // Calculate time constraints for real-time scheduling
+                        // At 120 BPM, tick interval is ~20.8ms (will adjust dynamically)
+                        // We set conservative constraints that work across BPM range
+                        let nominal_ns = 20_000_000u64; // 20ms nominal period
+                        let nominal_ticks = (nominal_ns * timebase.denom as u64 / timebase.numer as u64) as u32;
+
+                        let constraint = thread_time_constraint_policy_data_t {
+                            period: nominal_ticks,           // Expected time between wakeups
+                            computation: nominal_ticks / 4,  // Max CPU time we'll use per period
+                            constraint: nominal_ticks / 2,   // Deadline to complete our work
+                            preemptible: 1,                  // Allow preemption (safer)
+                        };
+
+                        let result = thread_policy_set(
+                            thread_port,
+                            THREAD_TIME_CONSTRAINT_POLICY,
+                            &constraint as *const _ as *mut i32,
+                            THREAD_TIME_CONSTRAINT_POLICY_COUNT,
+                        );
+
+                        if result != 0 {
+                            eprintln!("Warning: Failed to set real-time thread policy (code: {})", result);
+                            eprintln!("Clock will still run but may experience timing jitter.");
+                        }
+                    }
                 }
 
                 let timer = HighResTimer::new();

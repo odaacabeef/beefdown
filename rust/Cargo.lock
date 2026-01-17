@@ -57,6 +57,7 @@ version = "0.1.0"
 dependencies = [
  "criterion",
  "lazy_static",
+ "libc",
  "mach2",
  "midir",
  "thread-priority",
