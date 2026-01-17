@@ -1,17 +1,8 @@
 .PHONY: all build test install clean rust-lib
 
-# Detect OS for library extension
+# Static library (same extension on all platforms)
 UNAME := $(shell uname -s)
-ifeq ($(UNAME),Darwin)
-	LIB_EXT := dylib
-	LIB_INSTALL_DIR := /usr/local/lib
-else ifeq ($(UNAME),Linux)
-	LIB_EXT := so
-	LIB_INSTALL_DIR := /usr/local/lib
-else
-	LIB_EXT := dll
-	LIB_INSTALL_DIR := /usr/local/lib
-endif
+LIB_EXT := a
 
 RUST_LIB := rust/target/release/libbeefdown.$(LIB_EXT)
 RUST_LIB_NAME := libbeefdown.$(LIB_EXT)
@@ -38,17 +29,16 @@ test: rust-lib
 	@echo "Running Rust tests..."
 	cd rust && cargo test --release
 
-# Install the Go binary (library stays in project directory)
+# Install the Go binary (statically linked, no external library needed)
 install: rust-lib
 	@echo "Installing Go binary..."
 	go install .
 	@echo ""
 	@echo "✅ Installation complete!"
 	@echo "   - Go binary: $(shell go env GOPATH)/bin/beefdown"
-	@echo "   - Rust library: $(RUST_LIB) (local)"
 	@echo ""
-	@echo "Note: The Rust library is not installed system-wide."
-	@echo "      Keep the project directory to maintain functionality."
+	@echo "The binary is statically linked and fully self-contained."
+	@echo "No external Rust library dependencies required."
 
 # Clean build artifacts
 clean:
@@ -58,13 +48,11 @@ clean:
 	cd rust && cargo clean
 	@echo "✅ Clean complete!"
 
-# Uninstall the Go binary (library is local, so just clean it)
+# Uninstall the Go binary
 uninstall:
 	@echo "Uninstalling Go binary..."
 	go clean -i
 	@echo "✅ Uninstall complete!"
-	@echo ""
-	@echo "To remove the Rust library, run: make clean"
 
 # Development: build and run with example file
 dev: build
@@ -75,11 +63,11 @@ help:
 	@echo "Beefdown Build System"
 	@echo ""
 	@echo "Targets:"
-	@echo "  make              - Build everything (Rust library + Go binary)"
+	@echo "  make              - Build everything (Rust static library + Go binary)"
 	@echo "  make build        - Same as default"
-	@echo "  make rust-lib     - Build only the Rust library"
+	@echo "  make rust-lib     - Build only the Rust static library"
 	@echo "  make test         - Run all tests (Go + Rust)"
-	@echo "  make install      - Install Go binary to GOPATH (library stays local)"
+	@echo "  make install      - Install self-contained Go binary to GOPATH"
 	@echo "  make uninstall    - Remove installed binary"
 	@echo "  make clean        - Clean all build artifacts"
 	@echo "  make dev          - Build and run with example file"
@@ -87,6 +75,5 @@ help:
 	@echo ""
 	@echo "System info:"
 	@echo "  OS: $(UNAME)"
-	@echo "  Library extension: .$(LIB_EXT)"
-	@echo "  Rust library: $(RUST_LIB)"
+	@echo "  Rust static library: $(RUST_LIB)"
 	@echo "  Go binary path: $(shell go env GOPATH)/bin/"

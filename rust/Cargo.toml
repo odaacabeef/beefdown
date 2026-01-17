@@ -5,7 +5,7 @@ edition = "2021"
 
 [lib]
 name = "beefdown"
-crate-type = ["cdylib", "rlib"]  # cdylib for C FFI, rlib for Rust tests
+crate-type = ["staticlib", "rlib"]  # staticlib for C FFI, rlib for Rust tests
 
 [dependencies]
 # Real-time thread priorities
