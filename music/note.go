@@ -9,7 +9,7 @@ func Note(name string, octave string) (*uint8, error) {
 	if err != nil {
 		return nil, err
 	}
-	oct := uint8(num) + 2
+	oct := uint8(num) + 1
 	var note uint8
 	switch name {
 	case "c":
