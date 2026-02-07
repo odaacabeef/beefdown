@@ -57,3 +57,9 @@ func (p *BaseParser) Check(t TokenType) bool {
 	}
 	return p.Peek().Type == t
 }
+
+// TokenizeResult is returned by tokenizer helper functions
+type TokenizeResult struct {
+	Tokens []Token
+	NewPos int
+}

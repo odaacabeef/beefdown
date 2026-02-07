@@ -62,17 +62,12 @@ func NewParser(input string) *Parser {
 	}
 }
 
-type tokenizeResult struct {
-	tokens []base.Token
-	newPos int
-}
-
-func tokenizeNote(runes []rune, start int) (tokenizeResult, error) {
+func tokenizeNote(runes []rune, start int) (base.TokenizeResult, error) {
 	firstLetter := string(runes[start])
 
 	// Notes must be lowercase a-g
 	if firstLetter < "a" || firstLetter > "g" {
-		return tokenizeResult{}, fmt.Errorf("invalid note: %s", firstLetter)
+		return base.TokenizeResult{}, fmt.Errorf("invalid note: %s", firstLetter)
 	}
 
 	// Read the note letter and any accidentals
@@ -81,7 +76,7 @@ func tokenizeNote(runes []rune, start int) (tokenizeResult, error) {
 	for i < len(runes) && (runes[i] == 'b' || runes[i] == '#') {
 		accidentalCount++
 		if accidentalCount > 1 {
-			return tokenizeResult{}, fmt.Errorf("invalid note: %s", string(runes[start:i+1]))
+			return base.TokenizeResult{}, fmt.Errorf("invalid note: %s", string(runes[start:i+1]))
 		}
 		i++
 	}
@@ -102,15 +97,15 @@ func tokenizeNote(runes []rune, start int) (tokenizeResult, error) {
 		tokens = append(tokens, base.Token{Type: base.TokenType(NUMBER), Literal: string(runes[octaveStart:i])})
 	}
 
-	return tokenizeResult{tokens: tokens, newPos: i}, nil
+	return base.TokenizeResult{Tokens: tokens, NewPos: i}, nil
 }
 
-func tokenizeChord(runes []rune, start int) (tokenizeResult, error) {
+func tokenizeChord(runes []rune, start int) (base.TokenizeResult, error) {
 	firstLetter := string(runes[start])
 
 	// Chords must be uppercase A-G
 	if firstLetter < "A" || firstLetter > "G" {
-		return tokenizeResult{}, fmt.Errorf("invalid chord root: %s", firstLetter)
+		return base.TokenizeResult{}, fmt.Errorf("invalid chord root: %s", firstLetter)
 	}
 
 	// Read until we hit a space, colon, or end
@@ -121,16 +116,16 @@ func tokenizeChord(runes []rune, start int) (tokenizeResult, error) {
 
 	chord := string(runes[start:i])
 	token := base.Token{Type: base.TokenType(CHORD), Literal: chord}
-	return tokenizeResult{tokens: []base.Token{token}, newPos: i}, nil
+	return base.TokenizeResult{Tokens: []base.Token{token}, NewPos: i}, nil
 }
 
-func tokenizeNumber(runes []rune, start int) tokenizeResult {
+func tokenizeNumber(runes []rune, start int) base.TokenizeResult {
 	i := start
 	for i < len(runes) && unicode.IsDigit(runes[i]) {
 		i++
 	}
 	token := base.Token{Type: base.TokenType(NUMBER), Literal: string(runes[start:i])}
-	return tokenizeResult{tokens: []base.Token{token}, newPos: i}
+	return base.TokenizeResult{Tokens: []base.Token{token}, NewPos: i}
 }
 
 func tokenize(input string) []base.Token {
@@ -147,10 +142,10 @@ func tokenize(input string) []base.Token {
 			i++
 		case unicode.IsDigit(runes[i]):
 			result := tokenizeNumber(runes, i)
-			tokens = append(tokens, result.tokens...)
-			i = result.newPos
+			tokens = append(tokens, result.Tokens...)
+			i = result.NewPos
 		case unicode.IsLetter(runes[i]):
-			var result tokenizeResult
+			var result base.TokenizeResult
 			var err error
 
 			if unicode.IsLower(runes[i]) {
@@ -163,8 +158,8 @@ func tokenize(input string) []base.Token {
 				return []base.Token{{Type: base.ILLEGAL, Literal: err.Error()}}
 			}
 
-			tokens = append(tokens, result.tokens...)
-			i = result.newPos
+			tokens = append(tokens, result.Tokens...)
+			i = result.NewPos
 		default:
 			i++
 		}
