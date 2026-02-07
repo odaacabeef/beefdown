@@ -118,6 +118,85 @@ func NewParser(input string) *Parser {
 	}
 }
 
+type tokenizeResult struct {
+	token  base.Token
+	newPos int
+}
+
+func isIdentifierChar(r rune) bool {
+	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-' || r == '.'
+}
+
+func tokenizeQuotedString(runes []rune, start int) tokenizeResult {
+	quote := runes[start]
+	i := start + 1 // Skip opening quote
+
+	for i < len(runes) && runes[i] != quote {
+		i++
+	}
+
+	if i < len(runes) {
+		// Include the quotes in the literal
+		literal := string(runes[start : i+1])
+		return tokenizeResult{
+			token:  base.Token{Type: base.TokenType(QUOTED_STRING), Literal: literal},
+			newPos: i + 1,
+		}
+	}
+
+	// Unclosed quote
+	return tokenizeResult{
+		token:  base.Token{Type: base.ILLEGAL, Literal: string(runes[start:])},
+		newPos: len(runes),
+	}
+}
+
+func hasLetterAhead(runes []rune, start int) bool {
+	for i := start; i < len(runes) && isIdentifierChar(runes[i]); i++ {
+		if unicode.IsLetter(runes[i]) {
+			return true
+		}
+	}
+	return false
+}
+
+func tokenizeNumberOrIdentifier(runes []rune, start int) tokenizeResult {
+	// Check if this number is part of an alphanumeric identifier (e.g., "4th-triplet")
+	if hasLetterAhead(runes, start) {
+		return tokenizeIdentifier(runes, start)
+	}
+
+	// Pure number
+	i := start
+	for i < len(runes) && (unicode.IsDigit(runes[i]) || runes[i] == '.') {
+		i++
+	}
+
+	return tokenizeResult{
+		token:  base.Token{Type: base.TokenType(NUMBER), Literal: string(runes[start:i])},
+		newPos: i,
+	}
+}
+
+func tokenizeIdentifier(runes []rune, start int) tokenizeResult {
+	i := start
+	for i < len(runes) && !unicode.IsSpace(runes[i]) && runes[i] != ':' {
+		i++
+	}
+
+	literal := string(runes[start:i])
+	tokenType := base.TokenType(IDENTIFIER)
+
+	if literal == "true" || literal == "false" {
+		tokenType = base.TokenType(BOOLEAN)
+	}
+
+	return tokenizeResult{
+		token:  base.Token{Type: tokenType, Literal: literal},
+		newPos: i,
+	}
+}
+
 func tokenize(input string) []base.Token {
 	var tokens []base.Token
 	runes := []rune(input)
@@ -126,76 +205,26 @@ func tokenize(input string) []base.Token {
 	for i < len(runes) {
 		switch {
 		case unicode.IsSpace(runes[i]):
-			// Skip all whitespace characters
-			for i < len(runes) && unicode.IsSpace(runes[i]) {
-				i++
-			}
-			continue
+			i++
 		case runes[i] == ':':
 			tokens = append(tokens, base.Token{Type: base.TokenType(COLON), Literal: ":"})
 			i++
 		case runes[i] == '"' || runes[i] == '\'':
-			// Handle quoted strings
-			quote := runes[i]
-			start := i
-			i++ // Skip opening quote
-			for i < len(runes) && runes[i] != quote {
-				i++
-			}
-			if i < len(runes) {
-				// Include the quotes in the literal
-				literal := string(runes[start : i+1])
-				tokens = append(tokens, base.Token{Type: base.TokenType(QUOTED_STRING), Literal: literal})
-				i++
-			} else {
-				// Unclosed quote
-				tokens = append(tokens, base.Token{Type: base.ILLEGAL, Literal: string(runes[start:])})
-			}
+			result := tokenizeQuotedString(runes, i)
+			tokens = append(tokens, result.token)
+			i = result.newPos
 		case unicode.IsDigit(runes[i]):
-			// Check if this is part of an alphanumeric identifier
-			start := i
-			isIdentifier := false
-			// Look ahead to see if this is followed by letters
-			for j := i; j < len(runes) && (unicode.IsLetter(runes[j]) || unicode.IsDigit(runes[j]) || runes[j] == '_' || runes[j] == '-' || runes[j] == '.'); j++ {
-				if unicode.IsLetter(runes[j]) {
-					isIdentifier = true
-					break
-				}
-			}
-			if isIdentifier {
-				// This is an alphanumeric identifier
-				for i < len(runes) && (unicode.IsLetter(runes[i]) || unicode.IsDigit(runes[i]) || runes[i] == '_' || runes[i] == '-' || runes[i] == '.') {
-					i++
-				}
-				literal := string(runes[start:i])
-				tokens = append(tokens, base.Token{Type: base.TokenType(IDENTIFIER), Literal: literal})
-			} else {
-				// This is a pure number
-				for i < len(runes) && (unicode.IsDigit(runes[i]) || runes[i] == '.') {
-					i++
-				}
-				tokens = append(tokens, base.Token{Type: base.TokenType(NUMBER), Literal: string(runes[start:i])})
-			}
+			result := tokenizeNumberOrIdentifier(runes, i)
+			tokens = append(tokens, result.token)
+			i = result.newPos
 		case unicode.IsLetter(runes[i]) || runes[i] == '.':
-			start := i
-			// Allow any non-whitespace character in identifiers
-			for i < len(runes) && !unicode.IsSpace(runes[i]) && runes[i] != ':' {
-				i++
-			}
-			literal := string(runes[start:i])
-			if literal == "true" || literal == "false" {
-				tokens = append(tokens, base.Token{Type: base.TokenType(BOOLEAN), Literal: literal})
-			} else {
-				tokens = append(tokens, base.Token{Type: base.TokenType(IDENTIFIER), Literal: literal})
-			}
+			result := tokenizeIdentifier(runes, i)
+			tokens = append(tokens, result.token)
+			i = result.newPos
 		default:
-			// Handle any other character as part of an identifier
-			start := i
-			for i < len(runes) && !unicode.IsSpace(runes[i]) && runes[i] != ':' {
-				i++
-			}
-			literal := string(runes[start:i])
-			tokens = append(tokens, base.Token{Type: base.TokenType(IDENTIFIER), Literal: literal})
+			result := tokenizeIdentifier(runes, i)
+			tokens = append(tokens, result.token)
+			i = result.newPos
 		}
 	}
 

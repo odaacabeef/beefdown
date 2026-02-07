@@ -62,6 +62,77 @@ func NewParser(input string) *Parser {
 	}
 }
 
+type tokenizeResult struct {
+	tokens []base.Token
+	newPos int
+}
+
+func tokenizeNote(runes []rune, start int) (tokenizeResult, error) {
+	firstLetter := string(runes[start])
+
+	// Notes must be lowercase a-g
+	if firstLetter < "a" || firstLetter > "g" {
+		return tokenizeResult{}, fmt.Errorf("invalid note: %s", firstLetter)
+	}
+
+	// Read the note letter and any accidentals
+	i := start + 1
+	accidentalCount := 0
+	for i < len(runes) && (runes[i] == 'b' || runes[i] == '#') {
+		accidentalCount++
+		if accidentalCount > 1 {
+			return tokenizeResult{}, fmt.Errorf("invalid note: %s", string(runes[start:i+1]))
+		}
+		i++
+	}
+
+	// Read the octave number if present
+	noteEnd := i
+	octaveStart := i
+	for i < len(runes) && unicode.IsDigit(runes[i]) {
+		i++
+	}
+
+	var tokens []base.Token
+	note := string(runes[start:noteEnd])
+	tokens = append(tokens, base.Token{Type: base.TokenType(NOTE), Literal: note})
+
+	// If we found an octave number, add it as a separate token
+	if i > octaveStart {
+		tokens = append(tokens, base.Token{Type: base.TokenType(NUMBER), Literal: string(runes[octaveStart:i])})
+	}
+
+	return tokenizeResult{tokens: tokens, newPos: i}, nil
+}
+
+func tokenizeChord(runes []rune, start int) (tokenizeResult, error) {
+	firstLetter := string(runes[start])
+
+	// Chords must be uppercase A-G
+	if firstLetter < "A" || firstLetter > "G" {
+		return tokenizeResult{}, fmt.Errorf("invalid chord root: %s", firstLetter)
+	}
+
+	// Read until we hit a space, colon, or end
+	i := start
+	for i < len(runes) && runes[i] != ':' && !unicode.IsSpace(runes[i]) {
+		i++
+	}
+
+	chord := string(runes[start:i])
+	token := base.Token{Type: base.TokenType(CHORD), Literal: chord}
+	return tokenizeResult{tokens: []base.Token{token}, newPos: i}, nil
+}
+
+func tokenizeNumber(runes []rune, start int) tokenizeResult {
+	i := start
+	for i < len(runes) && unicode.IsDigit(runes[i]) {
+		i++
+	}
+	token := base.Token{Type: base.TokenType(NUMBER), Literal: string(runes[start:i])}
+	return tokenizeResult{tokens: []base.Token{token}, newPos: i}
+}
+
 func tokenize(input string) []base.Token {
 	var tokens []base.Token
 	runes := []rune(input)
@@ -71,66 +142,29 @@ func tokenize(input string) []base.Token {
 		switch {
 		case unicode.IsSpace(runes[i]):
 			i++
-			continue
 		case runes[i] == ':':
 			tokens = append(tokens, base.Token{Type: base.TokenType(COLON), Literal: ":"})
 			i++
 		case unicode.IsDigit(runes[i]):
-			start := i
-			for i < len(runes) && unicode.IsDigit(runes[i]) {
-				i++
-			}
-			tokens = append(tokens, base.Token{Type: base.TokenType(NUMBER), Literal: string(runes[start:i])})
+			result := tokenizeNumber(runes, i)
+			tokens = append(tokens, result.tokens...)
+			i = result.newPos
 		case unicode.IsLetter(runes[i]):
-			start := i
-			firstLetter := string(runes[i])
+			var result tokenizeResult
+			var err error
 
-			// For notes, we need to handle the octave number as part of the token
-			if unicode.IsLower(runes[start]) {
-				// Notes must be lowercase a-g
-				if firstLetter < "a" || firstLetter > "g" {
-					return []base.Token{{Type: base.ILLEGAL, Literal: fmt.Sprintf("invalid note: %s", firstLetter)}}
-				}
-
-				// Read the note letter and any accidentals
-				noteEnd := start + 1
-				accidentalCount := 0
-				for noteEnd < len(runes) && (runes[noteEnd] == 'b' || runes[noteEnd] == '#') {
-					accidentalCount++
-					if accidentalCount > 1 {
-						return []base.Token{{Type: base.ILLEGAL, Literal: fmt.Sprintf("invalid note: %s", string(runes[start:noteEnd+1]))}}
-					}
-					noteEnd++
-				}
-
-				// Read the octave number if present
-				octaveEnd := noteEnd
-				for octaveEnd < len(runes) && unicode.IsDigit(runes[octaveEnd]) {
-					octaveEnd++
-				}
-
-				note := string(runes[start:noteEnd])
-				tokens = append(tokens, base.Token{Type: base.TokenType(NOTE), Literal: note})
-
-				// If we found an octave number, add it as a separate token
-				if octaveEnd > noteEnd {
-					tokens = append(tokens, base.Token{Type: base.TokenType(NUMBER), Literal: string(runes[noteEnd:octaveEnd])})
-				}
-
-				i = octaveEnd
+			if unicode.IsLower(runes[i]) {
+				result, err = tokenizeNote(runes, i)
 			} else {
-				// For chords, read until we hit a space, colon, or end
-				for i < len(runes) && runes[i] != ':' && !unicode.IsSpace(runes[i]) {
-					i++
-				}
-				token := string(runes[start:i])
-
-				// Chords must be uppercase A-G
-				if firstLetter < "A" || firstLetter > "G" {
-					return []base.Token{{Type: base.ILLEGAL, Literal: fmt.Sprintf("invalid chord root: %s", firstLetter)}}
-				}
-				tokens = append(tokens, base.Token{Type: base.TokenType(CHORD), Literal: token})
+				result, err = tokenizeChord(runes, i)
 			}
+
+			if err != nil {
+				return []base.Token{{Type: base.ILLEGAL, Literal: err.Error()}}
+			}
+
+			tokens = append(tokens, result.tokens...)
+			i = result.newPos
 		default:
 			i++
 		}
