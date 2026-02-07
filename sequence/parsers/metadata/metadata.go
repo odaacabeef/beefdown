@@ -2,23 +2,16 @@ package metadata
 
 import (
 	"fmt"
-	"slices"
 	"strconv"
 	"unicode"
+
+	"github.com/odaacabeef/beefdown/sequence/parsers/base"
 )
 
-// Token represents a lexical token
-type Token struct {
-	Type    TokenType
-	Literal string
-}
-
-type TokenType int
+type TokenType base.TokenType
 
 const (
-	ILLEGAL TokenType = iota
-	EOF
-	IDENTIFIER
+	IDENTIFIER TokenType = iota + 2 // Start after base.ILLEGAL and base.EOF
 	COLON
 	NUMBER
 	BOOLEAN
@@ -55,9 +48,9 @@ type FuncArpeggiateMetadata struct {
 
 func (t TokenType) String() string {
 	switch t {
-	case ILLEGAL:
+	case TokenType(base.ILLEGAL):
 		return "ILLEGAL"
-	case EOF:
+	case TokenType(base.EOF):
 		return "EOF"
 	case IDENTIFIER:
 		return "IDENTIFIER"
@@ -113,19 +106,20 @@ func (b *BooleanNode) TokenLiteral() string {
 
 // Parser represents the parser
 type Parser struct {
-	tokens  []Token
-	current int
+	base.BaseParser
 }
 
 func NewParser(input string) *Parser {
 	return &Parser{
-		tokens:  tokenize(input),
-		current: 0,
+		BaseParser: base.BaseParser{
+			Tokens:  tokenize(input),
+			Current: 0,
+		},
 	}
 }
 
-func tokenize(input string) []Token {
-	var tokens []Token
+func tokenize(input string) []base.Token {
+	var tokens []base.Token
 	runes := []rune(input)
 	i := 0
 
@@ -138,7 +132,7 @@ func tokenize(input string) []Token {
 			}
 			continue
 		case runes[i] == ':':
-			tokens = append(tokens, Token{Type: COLON, Literal: ":"})
+			tokens = append(tokens, base.Token{Type: base.TokenType(COLON), Literal: ":"})
 			i++
 		case runes[i] == '"' || runes[i] == '\'':
 			// Handle quoted strings
@@ -151,11 +145,11 @@ func tokenize(input string) []Token {
 			if i < len(runes) {
 				// Include the quotes in the literal
 				literal := string(runes[start : i+1])
-				tokens = append(tokens, Token{Type: QUOTED_STRING, Literal: literal})
+				tokens = append(tokens, base.Token{Type: base.TokenType(QUOTED_STRING), Literal: literal})
 				i++
 			} else {
 				// Unclosed quote
-				tokens = append(tokens, Token{Type: ILLEGAL, Literal: string(runes[start:])})
+				tokens = append(tokens, base.Token{Type: base.ILLEGAL, Literal: string(runes[start:])})
 			}
 		case unicode.IsDigit(runes[i]):
 			// Check if this is part of an alphanumeric identifier
@@ -174,13 +168,13 @@ func tokenize(input string) []Token {
 					i++
 				}
 				literal := string(runes[start:i])
-				tokens = append(tokens, Token{Type: IDENTIFIER, Literal: literal})
+				tokens = append(tokens, base.Token{Type: base.TokenType(IDENTIFIER), Literal: literal})
 			} else {
 				// This is a pure number
 				for i < len(runes) && (unicode.IsDigit(runes[i]) || runes[i] == '.') {
 					i++
 				}
-				tokens = append(tokens, Token{Type: NUMBER, Literal: string(runes[start:i])})
+				tokens = append(tokens, base.Token{Type: base.TokenType(NUMBER), Literal: string(runes[start:i])})
 			}
 		case unicode.IsLetter(runes[i]) || runes[i] == '.':
 			start := i
@@ -190,9 +184,9 @@ func tokenize(input string) []Token {
 			}
 			literal := string(runes[start:i])
 			if literal == "true" || literal == "false" {
-				tokens = append(tokens, Token{Type: BOOLEAN, Literal: literal})
+				tokens = append(tokens, base.Token{Type: base.TokenType(BOOLEAN), Literal: literal})
 			} else {
-				tokens = append(tokens, Token{Type: IDENTIFIER, Literal: literal})
+				tokens = append(tokens, base.Token{Type: base.TokenType(IDENTIFIER), Literal: literal})
 			}
 		default:
 			// Handle any other character as part of an identifier
@@ -201,11 +195,11 @@ func tokenize(input string) []Token {
 				i++
 			}
 			literal := string(runes[start:i])
-			tokens = append(tokens, Token{Type: IDENTIFIER, Literal: literal})
+			tokens = append(tokens, base.Token{Type: base.TokenType(IDENTIFIER), Literal: literal})
 		}
 	}
 
-	tokens = append(tokens, Token{Type: EOF, Literal: ""})
+	tokens = append(tokens, base.Token{Type: base.EOF, Literal: ""})
 	return tokens
 }
 
@@ -215,35 +209,35 @@ func (p *Parser) Parse() (*MetadataNode, error) {
 	}
 
 	// Skip the first identifier token (e.g. ".sequence", ".part", ".arrangement")
-	if !p.isAtEnd() && p.peek().Type == IDENTIFIER {
-		p.advance()
+	if !p.IsAtEnd() && TokenType(p.Peek().Type) == IDENTIFIER {
+		p.Advance()
 	}
 
 	// Skip any remaining whitespace
-	for !p.isAtEnd() && p.peek().Type == ILLEGAL {
-		p.advance()
+	for !p.IsAtEnd() && p.Peek().Type == base.ILLEGAL {
+		p.Advance()
 	}
 
-	for !p.isAtEnd() {
-		if p.peek().Type == EOF {
+	for !p.IsAtEnd() {
+		if p.Peek().Type == base.EOF {
 			break
 		}
 
 		// Parse key
-		if !p.match(IDENTIFIER) {
-			return nil, fmt.Errorf("expected identifier, got %s (type: %v)", p.peek().Literal, p.peek().Type)
+		if !p.Match(base.TokenType(IDENTIFIER)) {
+			return nil, fmt.Errorf("expected identifier, got %s (type: %v)", p.Peek().Literal, p.Peek().Type)
 		}
-		key := p.previous().Literal
+		key := p.Previous().Literal
 
 		// Parse colon
-		if !p.match(COLON) {
-			return nil, fmt.Errorf("expected ':', got %s (type: %v)", p.peek().Literal, p.peek().Type)
+		if !p.Match(base.TokenType(COLON)) {
+			return nil, fmt.Errorf("expected ':', got %s (type: %v)", p.Peek().Literal, p.Peek().Type)
 		}
 
 		// Parse value
 		var value Node
 		var err error
-		switch p.peek().Type {
+		switch TokenType(p.Peek().Type) {
 		case NUMBER:
 			value, err = p.parseNumber()
 		case BOOLEAN:
@@ -251,7 +245,7 @@ func (p *Parser) Parse() (*MetadataNode, error) {
 		case IDENTIFIER, QUOTED_STRING:
 			value, err = p.parseString()
 		default:
-			return nil, fmt.Errorf("unexpected token type: %v (literal: %s)", p.peek().Type, p.peek().Literal)
+			return nil, fmt.Errorf("unexpected token type: %v (literal: %s)", p.Peek().Type, p.Peek().Literal)
 		}
 		if err != nil {
 			return nil, err
@@ -264,10 +258,10 @@ func (p *Parser) Parse() (*MetadataNode, error) {
 }
 
 func (p *Parser) parseNumber() (*NumberNode, error) {
-	if !p.match(NUMBER) {
+	if !p.Match(base.TokenType(NUMBER)) {
 		return nil, fmt.Errorf("expected number")
 	}
-	value, err := strconv.ParseFloat(p.previous().Literal, 64)
+	value, err := strconv.ParseFloat(p.Previous().Literal, 64)
 	if err != nil {
 		return nil, err
 	}
@@ -275,19 +269,19 @@ func (p *Parser) parseNumber() (*NumberNode, error) {
 }
 
 func (p *Parser) parseBoolean() (*BooleanNode, error) {
-	if !p.match(BOOLEAN) {
+	if !p.Match(base.TokenType(BOOLEAN)) {
 		return nil, fmt.Errorf("expected boolean")
 	}
-	value := p.previous().Literal == "true"
+	value := p.Previous().Literal == "true"
 	return &BooleanNode{Value: value}, nil
 }
 
 func (p *Parser) parseString() (*StringNode, error) {
-	if !p.match(IDENTIFIER, QUOTED_STRING) {
+	if !p.Match(base.TokenType(IDENTIFIER), base.TokenType(QUOTED_STRING)) {
 		return nil, fmt.Errorf("expected string")
 	}
-	token := p.previous()
-	if token.Type == QUOTED_STRING {
+	token := p.Previous()
+	if TokenType(token.Type) == QUOTED_STRING {
 		// Remove the quotes from the literal
 		literal := token.Literal
 		if len(literal) >= 2 {
@@ -296,42 +290,6 @@ func (p *Parser) parseString() (*StringNode, error) {
 		return &StringNode{Value: literal}, nil
 	}
 	return &StringNode{Value: token.Literal}, nil
-}
-
-func (p *Parser) advance() Token {
-	if !p.isAtEnd() {
-		p.current++
-	}
-	return p.previous()
-}
-
-func (p *Parser) previous() Token {
-	return p.tokens[p.current-1]
-}
-
-func (p *Parser) peek() Token {
-	return p.tokens[p.current]
-}
-
-func (p *Parser) isAtEnd() bool {
-	return p.peek().Type == EOF
-}
-
-func (p *Parser) match(types ...TokenType) bool {
-	if slices.ContainsFunc(types, func(t TokenType) bool {
-		return p.check(t)
-	}) {
-		p.advance()
-		return true
-	}
-	return false
-}
-
-func (p *Parser) check(t TokenType) bool {
-	if p.isAtEnd() {
-		return false
-	}
-	return p.peek().Type == t
 }
 
 // Common parsing utilities
