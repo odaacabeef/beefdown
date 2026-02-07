@@ -365,8 +365,13 @@ func (fp *fieldParser) getInt(key string, defaultValue int) int {
 	return int(fp.getNumber(key, float64(defaultValue)))
 }
 
-func parseDiv(value string) int {
-	switch value {
+func (fp *fieldParser) getDiv(key string, defaultValue int) int {
+	divStr := fp.getString(key, "")
+	if divStr == "" {
+		return defaultValue
+	}
+
+	switch divStr {
 	case "4th-triplet":
 		return 16
 	case "8th":
@@ -378,7 +383,7 @@ func parseDiv(value string) int {
 	case "32nd":
 		return 3
 	default:
-		return 24
+		return defaultValue
 	}
 }
 
@@ -409,17 +414,11 @@ func ParsePartMetadata(raw string) (PartMetadata, error) {
 	}
 
 	fp := newFieldParser(node)
-	divStr := fp.getString("div", "")
-	div := 24
-	if divStr != "" {
-		div = parseDiv(divStr)
-	}
-
 	return PartMetadata{
 		Name:    fp.getString("name", "default"),
 		Group:   fp.getString("group", "default"),
 		Channel: fp.getUint8("ch", 1),
-		Div:     div,
+		Div:     fp.getDiv("div", 24),
 	}, nil
 }
 
@@ -445,18 +444,12 @@ func ParseFuncArpeggiateMetadata(raw string) (FuncArpeggiateMetadata, error) {
 	}
 
 	fp := newFieldParser(node)
-	divStr := fp.getString("div", "")
-	div := 24
-	if divStr != "" {
-		div = parseDiv(divStr)
-	}
-
 	return FuncArpeggiateMetadata{
 		PartMetadata: PartMetadata{
 			Name:    fp.getString("name", "default"),
 			Group:   fp.getString("group", "default"),
 			Channel: fp.getUint8("ch", 1),
-			Div:     div,
+			Div:     fp.getDiv("div", 24),
 		},
 		Notes:  fp.getString("notes", ""),
 		Length: fp.getInt("length", 1),
