@@ -189,7 +189,7 @@ func TestChordTokenization(t *testing.T) {
 			}
 
 			token := tokens[0]
-			if token.Type != tt.wantType {
+			if TokenType(token.Type) != tt.wantType {
 				t.Errorf("tokenize() type = %v, want %v for input %q", token.Type, tt.wantType, tt.input)
 			}
 			if token.Literal != tt.wantLit {
@@ -230,7 +230,7 @@ func TestNoteTokenization(t *testing.T) {
 
 			// Check note token
 			token := tokens[0]
-			if token.Type != tt.wantType {
+			if TokenType(token.Type) != tt.wantType {
 				t.Errorf("tokenize() type = %v, want %v for input %q", token.Type, tt.wantType, tt.input)
 			}
 			if token.Literal != tt.wantLit {
@@ -240,7 +240,7 @@ func TestNoteTokenization(t *testing.T) {
 			// Check octave number token
 			if len(tokens) > 2 { // If we have more than just note and EOF
 				numToken := tokens[1]
-				if numToken.Type != NUMBER {
+				if TokenType(numToken.Type) != NUMBER {
 					t.Errorf("tokenize() octave token type = %v, want NUMBER for input %q", numToken.Type, tt.input)
 				}
 				if numToken.Literal != tt.wantNum {

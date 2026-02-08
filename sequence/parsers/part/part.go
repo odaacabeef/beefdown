@@ -2,23 +2,16 @@ package part
 
 import (
 	"fmt"
-	"slices"
 	"strconv"
 	"unicode"
+
+	"github.com/odaacabeef/beefdown/sequence/parsers/base"
 )
 
-// Token represents a lexical token
-type Token struct {
-	Type    TokenType
-	Literal string
-}
-
-type TokenType int
+type TokenType base.TokenType
 
 const (
-	ILLEGAL TokenType = iota
-	EOF
-	NOTE
+	NOTE TokenType = iota + 2 // Start after base.ILLEGAL and base.EOF
 	CHORD
 	NUMBER
 	COLON
@@ -57,19 +50,86 @@ func (c *ChordNode) TokenLiteral() string {
 
 // Parser represents the parser
 type Parser struct {
-	tokens  []Token
-	current int
+	base.BaseParser
 }
 
 func NewParser(input string) *Parser {
 	return &Parser{
-		tokens:  tokenize(input),
-		current: 0,
+		BaseParser: base.BaseParser{
+			Tokens:  tokenize(input),
+			Current: 0,
+		},
 	}
 }
 
-func tokenize(input string) []Token {
-	var tokens []Token
+func tokenizeNote(runes []rune, start int) (base.TokenizeResult, error) {
+	firstLetter := string(runes[start])
+
+	// Notes must be lowercase a-g
+	if firstLetter < "a" || firstLetter > "g" {
+		return base.TokenizeResult{}, fmt.Errorf("invalid note: %s", firstLetter)
+	}
+
+	// Read the note letter and any accidentals
+	i := start + 1
+	accidentalCount := 0
+	for i < len(runes) && (runes[i] == 'b' || runes[i] == '#') {
+		accidentalCount++
+		if accidentalCount > 1 {
+			return base.TokenizeResult{}, fmt.Errorf("invalid note: %s", string(runes[start:i+1]))
+		}
+		i++
+	}
+
+	// Read the octave number if present
+	noteEnd := i
+	octaveStart := i
+	for i < len(runes) && unicode.IsDigit(runes[i]) {
+		i++
+	}
+
+	var tokens []base.Token
+	note := string(runes[start:noteEnd])
+	tokens = append(tokens, base.Token{Type: base.TokenType(NOTE), Literal: note})
+
+	// If we found an octave number, add it as a separate token
+	if i > octaveStart {
+		tokens = append(tokens, base.Token{Type: base.TokenType(NUMBER), Literal: string(runes[octaveStart:i])})
+	}
+
+	return base.TokenizeResult{Tokens: tokens, NewPos: i}, nil
+}
+
+func tokenizeChord(runes []rune, start int) (base.TokenizeResult, error) {
+	firstLetter := string(runes[start])
+
+	// Chords must be uppercase A-G
+	if firstLetter < "A" || firstLetter > "G" {
+		return base.TokenizeResult{}, fmt.Errorf("invalid chord root: %s", firstLetter)
+	}
+
+	// Read until we hit a space, colon, or end
+	i := start
+	for i < len(runes) && runes[i] != ':' && !unicode.IsSpace(runes[i]) {
+		i++
+	}
+
+	chord := string(runes[start:i])
+	token := base.Token{Type: base.TokenType(CHORD), Literal: chord}
+	return base.TokenizeResult{Tokens: []base.Token{token}, NewPos: i}, nil
+}
+
+func tokenizeNumber(runes []rune, start int) base.TokenizeResult {
+	i := start
+	for i < len(runes) && unicode.IsDigit(runes[i]) {
+		i++
+	}
+	token := base.Token{Type: base.TokenType(NUMBER), Literal: string(runes[start:i])}
+	return base.TokenizeResult{Tokens: []base.Token{token}, NewPos: i}
+}
+
+func tokenize(input string) []base.Token {
+	var tokens []base.Token
 	runes := []rune(input)
 	i := 0
 
@@ -77,80 +137,43 @@ func tokenize(input string) []Token {
 		switch {
 		case unicode.IsSpace(runes[i]):
 			i++
-			continue
 		case runes[i] == ':':
-			tokens = append(tokens, Token{Type: COLON, Literal: ":"})
+			tokens = append(tokens, base.Token{Type: base.TokenType(COLON), Literal: ":"})
 			i++
 		case unicode.IsDigit(runes[i]):
-			start := i
-			for i < len(runes) && unicode.IsDigit(runes[i]) {
-				i++
-			}
-			tokens = append(tokens, Token{Type: NUMBER, Literal: string(runes[start:i])})
+			result := tokenizeNumber(runes, i)
+			tokens = append(tokens, result.Tokens...)
+			i = result.NewPos
 		case unicode.IsLetter(runes[i]):
-			start := i
-			firstLetter := string(runes[i])
+			var result base.TokenizeResult
+			var err error
 
-			// For notes, we need to handle the octave number as part of the token
-			if unicode.IsLower(runes[start]) {
-				// Notes must be lowercase a-g
-				if firstLetter < "a" || firstLetter > "g" {
-					return []Token{{Type: ILLEGAL, Literal: fmt.Sprintf("invalid note: %s", firstLetter)}}
-				}
-
-				// Read the note letter and any accidentals
-				noteEnd := start + 1
-				accidentalCount := 0
-				for noteEnd < len(runes) && (runes[noteEnd] == 'b' || runes[noteEnd] == '#') {
-					accidentalCount++
-					if accidentalCount > 1 {
-						return []Token{{Type: ILLEGAL, Literal: fmt.Sprintf("invalid note: %s", string(runes[start:noteEnd+1]))}}
-					}
-					noteEnd++
-				}
-
-				// Read the octave number if present
-				octaveEnd := noteEnd
-				for octaveEnd < len(runes) && unicode.IsDigit(runes[octaveEnd]) {
-					octaveEnd++
-				}
-
-				note := string(runes[start:noteEnd])
-				tokens = append(tokens, Token{Type: NOTE, Literal: note})
-
-				// If we found an octave number, add it as a separate token
-				if octaveEnd > noteEnd {
-					tokens = append(tokens, Token{Type: NUMBER, Literal: string(runes[noteEnd:octaveEnd])})
-				}
-
-				i = octaveEnd
+			if unicode.IsLower(runes[i]) {
+				result, err = tokenizeNote(runes, i)
 			} else {
-				// For chords, read until we hit a space, colon, or end
-				for i < len(runes) && runes[i] != ':' && !unicode.IsSpace(runes[i]) {
-					i++
-				}
-				token := string(runes[start:i])
-
-				// Chords must be uppercase A-G
-				if firstLetter < "A" || firstLetter > "G" {
-					return []Token{{Type: ILLEGAL, Literal: fmt.Sprintf("invalid chord root: %s", firstLetter)}}
-				}
-				tokens = append(tokens, Token{Type: CHORD, Literal: token})
+				result, err = tokenizeChord(runes, i)
 			}
+
+			if err != nil {
+				return []base.Token{{Type: base.ILLEGAL, Literal: err.Error()}}
+			}
+
+			tokens = append(tokens, result.Tokens...)
+			i = result.NewPos
 		default:
 			i++
 		}
 	}
 
-	tokens = append(tokens, Token{Type: EOF, Literal: ""})
+	tokens = append(tokens, base.Token{Type: base.EOF, Literal: ""})
 	return tokens
 }
 
 func (p *Parser) Parse() ([]Node, error) {
 	var nodes []Node
-	for !p.isAtEnd() {
-		token := p.peek()
-		if token.Type == ILLEGAL {
+	for !p.IsAtEnd() {
+		token := p.Peek()
+		if token.Type == base.ILLEGAL {
 			return nil, fmt.Errorf("%s", token.Literal)
 		}
 		node, err := p.parseExpression()
@@ -165,37 +188,37 @@ func (p *Parser) Parse() ([]Node, error) {
 }
 
 func (p *Parser) parseExpression() (Node, error) {
-	token := p.peek()
-	switch token.Type {
+	token := p.Peek()
+	switch TokenType(token.Type) {
 	case NOTE:
 		return p.parseNote()
 	case CHORD:
 		return p.parseChord()
 	default:
-		p.advance()
+		p.Advance()
 		return nil, nil
 	}
 }
 
 func (p *Parser) parseNote() (*NoteNode, error) {
-	noteToken := p.advance()
+	noteToken := p.Advance()
 	note := noteToken.Literal
 
 	// Parse octave
-	if !p.match(NUMBER) {
+	if !p.Match(base.TokenType(NUMBER)) {
 		return nil, fmt.Errorf("expected octave number after note")
 	}
-	octave, err := strconv.Atoi(p.previous().Literal)
+	octave, err := strconv.Atoi(p.Previous().Literal)
 	if err != nil {
 		return nil, err
 	}
 
 	duration := 0
-	if p.match(COLON) {
-		if !p.match(NUMBER) {
+	if p.Match(base.TokenType(COLON)) {
+		if !p.Match(base.TokenType(NUMBER)) {
 			return nil, fmt.Errorf("expected duration number after colon")
 		}
-		duration, err = strconv.Atoi(p.previous().Literal)
+		duration, err = strconv.Atoi(p.Previous().Literal)
 		if err != nil {
 			return nil, err
 		}
@@ -208,8 +231,15 @@ func (p *Parser) parseNote() (*NoteNode, error) {
 	}, nil
 }
 
+var validChordQualities = map[string]bool{
+	"m": true, "M": true, "7": true, "9": true, "11": true, "13": true,
+	"dim": true, "aug": true, "sus": true, "m7": true, "M7": true,
+	"m9": true, "M9": true, "m11": true, "M11": true, "m13": true,
+	"M13": true, "dim7": true, "aug7": true, "sus4": true, "sus2": true,
+}
+
 func (p *Parser) parseChord() (*ChordNode, error) {
-	chordToken := p.advance()
+	chordToken := p.Advance()
 	chord := chordToken.Literal
 
 	// Extract root note (must be A-G, optionally followed by b or #)
@@ -220,26 +250,17 @@ func (p *Parser) parseChord() (*ChordNode, error) {
 	quality := chord[len(root):]
 
 	// Validate chord quality
-	if quality != "" {
-		// Common chord qualities: m, M, 7, 9, 11, 13, dim, aug, sus
-		validQualities := map[string]bool{
-			"m": true, "M": true, "7": true, "9": true, "11": true, "13": true,
-			"dim": true, "aug": true, "sus": true, "m7": true, "M7": true,
-			"m9": true, "M9": true, "m11": true, "M11": true, "m13": true,
-			"M13": true, "dim7": true, "aug7": true, "sus4": true, "sus2": true,
-		}
-		if !validQualities[quality] {
-			return nil, fmt.Errorf("invalid chord quality: %s", quality)
-		}
+	if quality != "" && !validChordQualities[quality] {
+		return nil, fmt.Errorf("invalid chord quality: %s", quality)
 	}
 
 	duration := 0
-	if p.match(COLON) {
-		if !p.match(NUMBER) {
+	if p.Match(base.TokenType(COLON)) {
+		if !p.Match(base.TokenType(NUMBER)) {
 			return nil, fmt.Errorf("expected duration number after colon")
 		}
 		var err error
-		duration, err = strconv.Atoi(p.previous().Literal)
+		duration, err = strconv.Atoi(p.Previous().Literal)
 		if err != nil {
 			return nil, err
 		}
@@ -252,38 +273,3 @@ func (p *Parser) parseChord() (*ChordNode, error) {
 	}, nil
 }
 
-func (p *Parser) advance() Token {
-	if !p.isAtEnd() {
-		p.current++
-	}
-	return p.previous()
-}
-
-func (p *Parser) previous() Token {
-	return p.tokens[p.current-1]
-}
-
-func (p *Parser) peek() Token {
-	return p.tokens[p.current]
-}
-
-func (p *Parser) isAtEnd() bool {
-	return p.peek().Type == EOF
-}
-
-func (p *Parser) match(types ...TokenType) bool {
-	if slices.ContainsFunc(types, func(t TokenType) bool {
-		return p.check(t)
-	}) {
-		p.advance()
-		return true
-	}
-	return false
-}
-
-func (p *Parser) check(t TokenType) bool {
-	if p.isAtEnd() {
-		return false
-	}
-	return p.peek().Type == t
-}
