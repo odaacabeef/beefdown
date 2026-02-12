@@ -106,7 +106,7 @@ func (s *Sequence) parse() error {
 			s.Arrangements = append(s.Arrangements, &a)
 			s.Playable = append(s.Playable, &a)
 
-		case strings.HasPrefix(lines[0], ".func."):
+		case strings.HasPrefix(lines[0], ".gen."):
 			meta, err := metaparser.ParseFuncMetadata(b[1])
 			if err != nil {
 				return err

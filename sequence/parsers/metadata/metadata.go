@@ -458,16 +458,16 @@ func ParseFuncArpeggiateMetadata(raw string) (FuncArpeggiateMetadata, error) {
 	}, nil
 }
 
-// extractFuncType extracts the func type name from the raw input
-// For example, ".func.arpeggiate" returns "arpeggiate"
+// extractFuncType extracts the generator type name from the raw input
+// For example, ".gen.arpeggiate" returns "arpeggiate"
 func extractFuncType(raw string) string {
 	lines := strings.Split(raw, "\n")
 	if len(lines) == 0 {
 		return ""
 	}
 	firstLine := strings.TrimSpace(lines[0])
-	if strings.HasPrefix(firstLine, ".func.") {
-		return strings.TrimPrefix(firstLine, ".func.")
+	if strings.HasPrefix(firstLine, ".gen.") {
+		return strings.TrimPrefix(firstLine, ".gen.")
 	}
 	return ""
 }
