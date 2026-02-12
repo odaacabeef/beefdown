@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	funcpkg "github.com/odaacabeef/beefdown/sequence/func"
+	"github.com/odaacabeef/beefdown/sequence/generators"
 	metaparser "github.com/odaacabeef/beefdown/sequence/parsers/metadata"
 )
 
@@ -112,17 +112,17 @@ func (s *Sequence) parse() error {
 				return err
 			}
 
-			factory, ok := funcpkg.Get(meta.FuncType)
+			factory, ok := generators.Get(meta.FuncType)
 			if !ok {
-				return fmt.Errorf("unknown func type: %s", meta.FuncType)
+				return fmt.Errorf("unknown generator type: %s", meta.FuncType)
 			}
 
-			fn, err := factory(meta.PartMetadata, meta.Params)
+			gen, err := factory(meta.PartMetadata, meta.Params)
 			if err != nil {
 				return err
 			}
 
-			stepStrings, err := fn.Generate()
+			stepStrings, err := gen.Generate()
 			if err != nil {
 				return err
 			}

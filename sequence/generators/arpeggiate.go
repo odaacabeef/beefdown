@@ -1,4 +1,4 @@
-package funcpkg
+package generators
 
 import (
 	"fmt"
@@ -13,20 +13,20 @@ type Arpeggiate struct {
 	Length int
 }
 
-func (f *Arpeggiate) Generate() ([]string, error) {
-	notes := strings.Split(f.Notes, ",")
+func (a *Arpeggiate) Generate() ([]string, error) {
+	notes := strings.Split(a.Notes, ",")
 	if len(notes) == 0 {
 		return nil, fmt.Errorf("arpeggiate: no notes provided")
 	}
 
 	var steps []string
-	for i := range f.Length {
+	for i := range a.Length {
 		steps = append(steps, fmt.Sprintf("%s:1", notes[i%len(notes)]))
 	}
 	return steps, nil
 }
 
-func newArpeggiate(meta metaparser.PartMetadata, params map[string]interface{}) (Func, error) {
+func newArpeggiate(meta metaparser.PartMetadata, params map[string]interface{}) (Generator, error) {
 	notes, ok := getStringParam(params, "notes")
 	if !ok {
 		return nil, fmt.Errorf("arpeggiate: missing required parameter 'notes'")
