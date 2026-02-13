@@ -2,7 +2,6 @@ package generators
 
 import (
 	"fmt"
-	"strings"
 
 	metaparser "github.com/odaacabeef/beefdown/sequence/parsers/metadata"
 )
@@ -81,19 +80,6 @@ func bjorklund(pulses, steps int) []bool {
 	}
 
 	return pattern
-}
-
-// boolSliceToString converts a bool slice to a string for comparison
-func boolSliceToString(slice []bool) string {
-	var sb strings.Builder
-	for _, b := range slice {
-		if b {
-			sb.WriteString("1")
-		} else {
-			sb.WriteString("0")
-		}
-	}
-	return sb.String()
 }
 
 // rotate rotates a pattern by the specified amount
