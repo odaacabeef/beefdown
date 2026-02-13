@@ -107,7 +107,7 @@ div: 8th
 
 ````
 ```beef.arrangement name:euclidean-demo group:classic
- tresillo cinquillo sparse-kick busy-hats
+tresillo cinquillo sparse-kick busy-hats
 ```
 ````
 
@@ -120,7 +120,7 @@ Rotation changes where the pattern starts, creating different rhythmic feels.
 #### Rotation 0 (starts with pulse)
 ````
 ```beef.gen.euclidean
-name: rot-0
+name: r0
 group: rotation
 ch: 1
 pulses: 5
@@ -134,7 +134,7 @@ div: 8th
 #### Rotation 2 (shifted right by 2)
 ````
 ```beef.gen.euclidean
-name: rot-2
+name: r2
 group: rotation
 ch: 2
 pulses: 5
@@ -148,7 +148,7 @@ div: 8th
 #### Rotation 4 (shifted right by 4)
 ````
 ```beef.gen.euclidean
-name: rot-4
+name: r4
 group: rotation
 ch: 3
 pulses: 5
@@ -163,6 +163,6 @@ Using the same pattern with different rotations creates interesting polyrhythms:
 
 ````
 ```beef.arrangement name: polyrhythm group: rotation
- rot-0 rot-2 rot-4
+r0 r2 r4
 ```
 ````
