@@ -1,10 +1,12 @@
 package sequence
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
 
+	"github.com/odaacabeef/beefdown/sequence/generators"
 	metaparser "github.com/odaacabeef/beefdown/sequence/parsers/metadata"
 )
 
@@ -104,34 +106,45 @@ func (s *Sequence) parse() error {
 			s.Arrangements = append(s.Arrangements, &a)
 			s.Playable = append(s.Playable, &a)
 
-		case strings.HasPrefix(lines[0], ".func.arpeggiate"):
-
-			meta, err := metaparser.ParseFuncArpeggiateMetadata(b[1])
-
+		case strings.HasPrefix(lines[0], ".gen."):
+			meta, err := metaparser.ParseFuncMetadata(b[1])
 			if err != nil {
 				return err
 			}
 
-			f := FuncArpeggiate{
-				Part: Part{
-					name:    meta.Name,
-					group:   meta.Group,
-					channel: meta.Channel,
-					div:     meta.Div,
-				},
-				Notes:  meta.Notes,
-				Length: meta.Length,
+			factory, ok := generators.Get(meta.FuncType)
+			if !ok {
+				return fmt.Errorf("unknown generator type: %s", meta.FuncType)
 			}
 
-			f.buildSteps()
-
-			err = f.parseMIDI()
+			gen, err := factory(meta.PartMetadata, meta.Params)
 			if err != nil {
 				return err
 			}
 
-			s.Parts = append(s.Parts, &f.Part)
-			s.Playable = append(s.Playable, &f.Part)
+			stepStrings, err := gen.Generate()
+			if err != nil {
+				return err
+			}
+
+			// Build Part from generated steps
+			p := Part{
+				name:    meta.PartMetadata.Name,
+				group:   meta.PartMetadata.Group,
+				channel: meta.PartMetadata.Channel,
+				div:     meta.PartMetadata.Div,
+			}
+			for _, stepStr := range stepStrings {
+				p.steps = append(p.steps, step(stepStr))
+			}
+
+			err = p.parseMIDI()
+			if err != nil {
+				return err
+			}
+
+			s.Parts = append(s.Parts, &p)
+			s.Playable = append(s.Playable, &p)
 		}
 	}
 

@@ -3,6 +3,7 @@ package metadata
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"unicode"
 
 	"github.com/odaacabeef/beefdown/sequence/parsers/base"
@@ -44,6 +45,12 @@ type FuncArpeggiateMetadata struct {
 	PartMetadata
 	Notes  string
 	Length int
+}
+
+type FuncMetadata struct {
+	FuncType     string
+	PartMetadata PartMetadata
+	Params       map[string]interface{}
 }
 
 func (t TokenType) String() string {
@@ -448,5 +455,51 @@ func ParseFuncArpeggiateMetadata(raw string) (FuncArpeggiateMetadata, error) {
 		},
 		Notes:  fp.getString("notes", ""),
 		Length: fp.getInt("length", 1),
+	}, nil
+}
+
+// extractFuncType extracts the generator type name from the raw input
+// For example, ".gen.arpeggiate" returns "arpeggiate"
+func extractFuncType(raw string) string {
+	lines := strings.Split(raw, "\n")
+	if len(lines) == 0 {
+		return ""
+	}
+	firstLine := strings.TrimSpace(lines[0])
+	if strings.HasPrefix(firstLine, ".gen.") {
+		return strings.TrimPrefix(firstLine, ".gen.")
+	}
+	return ""
+}
+
+// ParseFuncMetadata parses generic func metadata
+func ParseFuncMetadata(raw string) (FuncMetadata, error) {
+	parser := NewParser(raw)
+	node, err := parser.Parse()
+	if err != nil {
+		return FuncMetadata{}, err
+	}
+
+	fp := newFieldParser(node)
+
+	// Extract common PartMetadata fields
+	partMeta := PartMetadata{
+		Name:    fp.getString("name", "default"),
+		Group:   fp.getString("group", "default"),
+		Channel: fp.getUint8("ch", 1),
+		Div:     fp.getDiv("div", 24),
+	}
+
+	// All fields in the node become params (including part fields)
+	// The func factory will extract what it needs
+	params := make(map[string]interface{})
+	for key, value := range node.Fields {
+		params[key] = value
+	}
+
+	return FuncMetadata{
+		FuncType:     extractFuncType(raw),
+		PartMetadata: partMeta,
+		Params:       params,
 	}, nil
 }
