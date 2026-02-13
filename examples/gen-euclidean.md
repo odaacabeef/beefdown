@@ -15,25 +15,35 @@ The euclidean generator distributes pulses evenly across steps.
 
 ## How It Works
 
-The generator uses a **Bresenham-based approach** (from computer graphics) to
+The generator uses a Bresenham-based approach (from computer graphics) to
 distribute pulses. This is simpler and more predictable than the traditional
 Bjorklund algorithm, while producing equivalent musical results.
 
 **The algorithm:**
 - Maintains a "bucket" that accumulates pulses
 - Each step adds the pulse count to the bucket
-- When the bucket overflows (≥ steps), output a pulse and reset
+- When the bucket overflows (≥ steps), output a pulse and subtract 8
 - Otherwise, output a rest
 
 **Example: 5 pulses in 8 steps**
+
+Starting with `bucket = 0`, at each step we add 5 (pulses).
+When `bucket >= 8` (steps), output a pulse and subtract 8.
+Otherwise, output a rest.
+
 ```
-Step:   1  2  3  4  5  6  7  8
-Bucket: 5  10 15 20 25 30 35 40
-        ↓  ↓  ↓  ↓  ↓  ↓  ↓  ↓
-After:  5  2  7  4  1  6  3  0  (mod 8)
-Output: x  .  x  .  x  .  x  x
+Step:    1    2    3    4    5    6    7    8
+---------------------------------------------
+Add:    +5   +5   +5   +5   +5   +5   +5   +5
+Bucket:  5   10    7   12    9    6   11    8
+         ↓    ↓    ↓    ↓    ↓    ↓    ↓    ↓
+        <8   %8   <8   %8   %8   <8   %8   %8
+              2         4    1         3    0
+
+Output:  .    x    .    x    x    .    x    x
 ```
-Result: `x.xx.xx.` - pulses distributed as evenly as possible.
+
+Result: `.x.xx.xx` - pulses distributed as evenly as possible.
 
 ## Understanding Rotation
 
