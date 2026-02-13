@@ -80,20 +80,6 @@ func bjorklund(pulses, steps int) []bool {
 		}
 	}
 
-	// Rotate pattern to start with a pulse (more intuitive)
-	if pulses > 0 {
-		firstPulse := 0
-		for i, p := range pattern {
-			if p {
-				firstPulse = i
-				break
-			}
-		}
-		if firstPulse > 0 {
-			pattern = rotate(pattern, -firstPulse)
-		}
-	}
-
 	return pattern
 }
 
