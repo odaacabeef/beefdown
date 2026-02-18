@@ -2,6 +2,8 @@ package generators
 
 import (
 	"fmt"
+	"math/rand"
+	"strings"
 
 	metaparser "github.com/odaacabeef/beefdown/sequence/parsers/metadata"
 )
@@ -11,8 +13,9 @@ import (
 type Euclidean struct {
 	Pulses   int
 	Steps    int
-	Note     string
+	Note     string // Single note or comma-separated pool
 	Rotation int
+	Seed     int64
 }
 
 func (e *Euclidean) Generate() ([]string, error) {
@@ -34,11 +37,32 @@ func (e *Euclidean) Generate() ([]string, error) {
 		pattern = rotate(pattern, e.Rotation)
 	}
 
+	// Check if Note is a pool (contains commas)
+	notePool := strings.Split(e.Note, ",")
+	for i := range notePool {
+		notePool[i] = strings.TrimSpace(notePool[i])
+	}
+	isPool := len(notePool) > 1
+
+	// Initialize RNG if we have a pool
+	var rng *rand.Rand
+	if isPool {
+		rng = rand.New(rand.NewSource(e.Seed))
+	}
+
 	// Convert pattern to steps
 	var steps []string
 	for _, pulse := range pattern {
 		if pulse {
-			steps = append(steps, fmt.Sprintf("%s:1", e.Note))
+			var note string
+			if isPool {
+				// Randomly select from pool
+				note = notePool[rng.Intn(len(notePool))]
+			} else {
+				// Use single note
+				note = e.Note
+			}
+			steps = append(steps, fmt.Sprintf("%s:1", note))
 		} else {
 			steps = append(steps, "") // rest
 		}
@@ -115,16 +139,22 @@ func newEuclidean(meta metaparser.PartMetadata, params map[string]interface{}) (
 
 	note, ok := getStringParam(params, "note")
 	if !ok {
-		return nil, fmt.Errorf("euclidean: missing required parameter 'note'")
+		// Try "notes" as alternative parameter name
+		note, ok = getStringParam(params, "notes")
+		if !ok {
+			return nil, fmt.Errorf("euclidean: missing required parameter 'note' or 'notes'")
+		}
 	}
 
 	rotation, _ := getIntParam(params, "rotation") // optional, defaults to 0
+	seed, _ := getIntParam(params, "seed")         // optional, defaults to 0
 
 	return &Euclidean{
 		Pulses:   pulses,
 		Steps:    steps,
 		Note:     note,
 		Rotation: rotation,
+		Seed:     int64(seed),
 	}, nil
 }
 
