@@ -2,8 +2,9 @@
 
 This example demonstrates chord functionality including triads (major, minor,
 diminished, augmented, suspended), 7th chords (including half-diminished m7b5),
-extended chords (9ths, 11ths, 13ths), altered dominants (7b9, 7#9, 7alt, etc.),
-and slash chord notation for inversions and polychords.
+extended chords (9ths, 11ths, 13ths), 6th and add chords (6, 69, add9, etc.),
+altered dominants (7b9, 7#9, 7alt, etc.), and slash chord notation for
+inversions and polychords.
 
 ## Triads
 
@@ -76,6 +77,40 @@ Cm13:4
 CM13:4
 *3
 Csus2:4
+*3
+```
+````
+
+## 6th Chords
+
+Common in jazz as ending chords and for color.
+
+````
+```beef.part name:sixths
+C6:4
+*3
+Cm6:4
+*3
+C69:4
+*3
+Cm6:4
+*3
+```
+````
+
+## Add Chords
+
+Triads with added notes, without a 7th.
+
+````
+```beef.part name:add-chords
+Cadd9:4
+*3
+Cmadd9:4
+*3
+Cadd9:4
+*3
+C69:4
 *3
 ```
 ````
@@ -258,6 +293,8 @@ sevenths
 ninths
 elevenths
 thirteenths
+sixths
+add-chords
 basic-altered
 extended-altered
 minor-ii-v-i

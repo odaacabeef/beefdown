@@ -24,6 +24,15 @@ func Chord(note string, quality string, bass ...string) []uint8 {
 		"m7b5":  {0, 3, 6, 10}, // Half-diminished (minor 7 flat 5)
 		"aug7":  {0, 4, 8, 10}, // Augmented 7th
 
+		// 6th chords
+		"6":  {0, 4, 7, 9},     // Major 6th
+		"m6": {0, 3, 7, 9},     // Minor 6th
+		"69": {0, 4, 7, 9, 14}, // 6/9 chord (major 6 with added 9)
+
+		// Add chords (triad with added note, no 7th)
+		"add9":  {0, 4, 7, 14}, // Major triad + 9th
+		"madd9": {0, 3, 7, 14}, // Minor triad + 9th
+
 		// Altered dominants (jazz)
 		"7b9":  {0, 4, 7, 10, 13}, // Dominant 7 flat 9
 		"7#9":  {0, 4, 7, 10, 15}, // Dominant 7 sharp 9 (Hendrix chord)
