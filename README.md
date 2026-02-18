@@ -1,9 +1,6 @@
 # beefdown
 
-A markdown-driven MIDI sequencer.
-
-Cross-platform with real-time scheduling optimizations on macOS for
-sub-millisecond timing accuracy.
+A MIDI sequencer that uses markdown syntax to define sequences.
 
 ## Sequences
 
