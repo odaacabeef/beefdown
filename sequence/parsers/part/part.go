@@ -240,7 +240,9 @@ var validChordQualities = map[string]bool{
 	"m": true, "M": true, "7": true, "9": true, "11": true, "13": true,
 	"dim": true, "aug": true, "sus": true, "m7": true, "M7": true,
 	"m9": true, "M9": true, "m11": true, "M11": true, "m13": true,
-	"M13": true, "dim7": true, "aug7": true, "sus4": true, "sus2": true,
+	"M13": true, "dim7": true, "m7b5": true, "aug7": true, "sus4": true, "sus2": true,
+	"7b9": true, "7#9": true, "7b5": true, "7#5": true, "7#11": true,
+	"7b13": true, "7alt": true,
 }
 
 func (p *Parser) parseChord() (*ChordNode, error) {

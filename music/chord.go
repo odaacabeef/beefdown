@@ -17,11 +17,21 @@ func Chord(note string, quality string, bass ...string) []uint8 {
 		"sus":  {0, 5, 7},  // Default sus to sus4
 
 		// 7th chords
-		"M7":   {0, 4, 7, 11}, // Major 7th
-		"m7":   {0, 3, 7, 10}, // Minor 7th
-		"7":    {0, 4, 7, 10}, // Dominant 7th
-		"dim7": {0, 3, 6, 9},  // Diminished 7th
-		"aug7": {0, 4, 8, 10}, // Augmented 7th
+		"M7":    {0, 4, 7, 11}, // Major 7th
+		"m7":    {0, 3, 7, 10}, // Minor 7th
+		"7":     {0, 4, 7, 10}, // Dominant 7th
+		"dim7":  {0, 3, 6, 9},  // Diminished 7th
+		"m7b5":  {0, 3, 6, 10}, // Half-diminished (minor 7 flat 5)
+		"aug7":  {0, 4, 8, 10}, // Augmented 7th
+
+		// Altered dominants (jazz)
+		"7b9":  {0, 4, 7, 10, 13}, // Dominant 7 flat 9
+		"7#9":  {0, 4, 7, 10, 15}, // Dominant 7 sharp 9 (Hendrix chord)
+		"7b5":  {0, 4, 6, 10},     // Dominant 7 flat 5
+		"7#5":  {0, 4, 8, 10},     // Dominant 7 sharp 5 (same as aug7)
+		"7#11": {0, 4, 7, 10, 14, 18}, // Dominant 7 sharp 11 (Lydian dominant)
+		"7b13": {0, 4, 7, 10, 14, 17, 20}, // Dominant 7 flat 13
+		"7alt": {0, 4, 6, 8, 10, 13, 15},  // Altered dominant (b5, #5, b9, #9)
 
 		// 9th chords (9th = octave + major 2nd = 14 semitones)
 		"9":  {0, 4, 7, 10, 14}, // Dominant 9th
