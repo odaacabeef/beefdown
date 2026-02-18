@@ -38,14 +38,19 @@ func (n *NoteNode) TokenLiteral() string {
 type ChordNode struct {
 	Root     string
 	Quality  string
+	Bass     string
 	Duration int
 }
 
 func (c *ChordNode) TokenLiteral() string {
-	if c.Duration > 0 {
-		return fmt.Sprintf("%s%s:%d", c.Root, c.Quality, c.Duration)
+	chord := fmt.Sprintf("%s%s", c.Root, c.Quality)
+	if c.Bass != "" {
+		chord += fmt.Sprintf("/%s", c.Bass)
 	}
-	return fmt.Sprintf("%s%s", c.Root, c.Quality)
+	if c.Duration > 0 {
+		return fmt.Sprintf("%s:%d", chord, c.Duration)
+	}
+	return chord
 }
 
 // Parser represents the parser
@@ -108,7 +113,7 @@ func tokenizeChord(runes []rune, start int) (base.TokenizeResult, error) {
 		return base.TokenizeResult{}, fmt.Errorf("invalid chord root: %s", firstLetter)
 	}
 
-	// Read until we hit a space, colon, or end
+	// Read until we hit a space, colon, or end (slash is allowed for bass notes)
 	i := start
 	for i < len(runes) && runes[i] != ':' && !unicode.IsSpace(runes[i]) {
 		i++
@@ -232,10 +237,16 @@ func (p *Parser) parseNote() (*NoteNode, error) {
 }
 
 var validChordQualities = map[string]bool{
-	"m": true, "M": true, "7": true, "9": true, "11": true, "13": true,
-	"dim": true, "aug": true, "sus": true, "m7": true, "M7": true,
-	"m9": true, "M9": true, "m11": true, "M11": true, "m13": true,
-	"M13": true, "dim7": true, "aug7": true, "sus4": true, "sus2": true,
+	"m": true, "M": true, "5": true, "7": true, "9": true, "11": true, "13": true,
+	"dim": true, "aug": true, "sus": true, "m7": true, "M7": true, "mM7": true,
+	"m9": true, "M9": true, "mM9": true, "m11": true, "M11": true, "m13": true,
+	"M13": true, "dim7": true, "m7b5": true, "aug7": true, "sus4": true, "sus2": true,
+	"7b9": true, "7#9": true, "7b5": true, "7#5": true, "7#11": true,
+	"7b13": true, "7alt": true, "7sus4": true, "7sus2": true,
+	"6": true, "m6": true, "69": true, "m69": true,
+	"add9": true, "madd9": true, "add11": true, "madd11": true, "add13": true, "madd13": true,
+	"M7#5": true, "m9b5": true, "9b5": true, "9#5": true, "9#11": true, "9sus4": true,
+	"13#11": true, "13sus4": true,
 }
 
 func (p *Parser) parseChord() (*ChordNode, error) {
@@ -247,7 +258,42 @@ func (p *Parser) parseChord() (*ChordNode, error) {
 	if len(chord) > 1 && (chord[1] == 'b' || chord[1] == '#') {
 		root = chord[:2]
 	}
-	quality := chord[len(root):]
+
+	// Check for slash notation (bass note)
+	remainder := chord[len(root):]
+	quality := ""
+	bass := ""
+
+	slashIdx := -1
+	for i, ch := range remainder {
+		if ch == '/' {
+			slashIdx = i
+			break
+		}
+	}
+
+	if slashIdx >= 0 {
+		// Found slash - split into quality and bass
+		quality = remainder[:slashIdx]
+		bass = remainder[slashIdx+1:]
+
+		// Validate bass note (must be A-G, optionally followed by b or #)
+		if len(bass) == 0 {
+			return nil, fmt.Errorf("missing bass note after slash")
+		}
+		if bass[0] < 'A' || bass[0] > 'G' {
+			return nil, fmt.Errorf("invalid bass note: %s", bass)
+		}
+		if len(bass) > 1 && bass[1] != 'b' && bass[1] != '#' {
+			return nil, fmt.Errorf("invalid bass note: %s", bass)
+		}
+		if len(bass) > 2 {
+			return nil, fmt.Errorf("invalid bass note: %s", bass)
+		}
+	} else {
+		// No slash - entire remainder is quality
+		quality = remainder
+	}
 
 	// Validate chord quality
 	if quality != "" && !validChordQualities[quality] {
@@ -269,6 +315,7 @@ func (p *Parser) parseChord() (*ChordNode, error) {
 	return &ChordNode{
 		Root:     root,
 		Quality:  quality,
+		Bass:     bass,
 		Duration: duration,
 	}, nil
 }

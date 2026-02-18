@@ -80,7 +80,8 @@ func (p *Part) parseMIDI() (err error) {
 				}
 
 			case *partparser.ChordNode:
-				for _, note := range music.Chord(n.Root, n.Quality) {
+				chordNotes := music.Chord(n.Root, n.Quality, n.Bass)
+				for _, note := range chordNotes {
 					p.StepMIDI[stepIdx].On = append(p.StepMIDI[stepIdx].On, midi.NoteOn(p.channel-1, note, 100))
 					if n.Duration > 0 {
 						offIdx := stepIdx + n.Duration

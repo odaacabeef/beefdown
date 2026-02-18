@@ -198,8 +198,7 @@ c1
 
 All notes are sent with a velocity of 100.
 
-Parts also have basic chord support. _Run `beefdown examples/chords-ii-v-i.md`
-to see to see an example._
+Parts also have chord support. _See [examples/chords.md](examples/chords.md)._
 
 ### Arrangements
 
