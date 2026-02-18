@@ -1,6 +1,6 @@
 package music
 
-func Chord(note string, quality string) []uint8 {
+func Chord(note string, quality string, bass ...string) []uint8 {
 
 	oct := uint8(5)
 	baseNote := C(oct)
@@ -76,6 +76,70 @@ func Chord(note string, quality string) []uint8 {
 	var notes []uint8
 	for _, interval := range intervals {
 		notes = append(notes, baseNote+pitchOffset+interval)
+	}
+
+	// Handle slash chord (bass note specification)
+	if len(bass) > 0 && bass[0] != "" {
+		bassNote := bass[0]
+
+		// Get the pitch offset for the bass note
+		var bassPitchOffset uint8
+		switch bassNote {
+		case "C":
+			bassPitchOffset = 0
+		case "C#", "Db":
+			bassPitchOffset = 1
+		case "D":
+			bassPitchOffset = 2
+		case "D#", "Eb":
+			bassPitchOffset = 3
+		case "E":
+			bassPitchOffset = 4
+		case "F":
+			bassPitchOffset = 5
+		case "F#", "Gb":
+			bassPitchOffset = 6
+		case "G":
+			bassPitchOffset = 7
+		case "G#", "Ab":
+			bassPitchOffset = 8
+		case "A":
+			bassPitchOffset = 9
+		case "A#", "Bb":
+			bassPitchOffset = 10
+		case "B":
+			bassPitchOffset = 11
+		}
+
+		// Find the lowest note in the chord to determine bass octave
+		var lowestNote uint8 = 255
+		for _, n := range notes {
+			if n < lowestNote {
+				lowestNote = n
+			}
+		}
+
+		// Place bass note in octave 4 (one below the default chord octave 5)
+		// This ensures it's below the chord
+		bassOctave := uint8(4)
+		bassMIDI := C(bassOctave) + bassPitchOffset
+
+		// Check if this bass note already exists in the chord
+		bassExists := false
+		for _, n := range notes {
+			// Check if the note has the same pitch class (ignoring octave)
+			if n%12 == bassMIDI%12 {
+				bassExists = true
+				break
+			}
+		}
+
+		// If bass note doesn't exist in chord, add it (polychord)
+		// If it exists, we still add it in the bass register to ensure proper voicing
+		if !bassExists || bassMIDI < lowestNote {
+			// Prepend bass note to ensure it's first (lowest)
+			notes = append([]uint8{bassMIDI}, notes...)
+		}
 	}
 
 	return notes
