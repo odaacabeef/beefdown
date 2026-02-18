@@ -237,12 +237,12 @@ func (p *Parser) parseNote() (*NoteNode, error) {
 }
 
 var validChordQualities = map[string]bool{
-	"m": true, "M": true, "7": true, "9": true, "11": true, "13": true,
-	"dim": true, "aug": true, "sus": true, "m7": true, "M7": true,
-	"m9": true, "M9": true, "m11": true, "M11": true, "m13": true,
+	"m": true, "M": true, "5": true, "7": true, "9": true, "11": true, "13": true,
+	"dim": true, "aug": true, "sus": true, "m7": true, "M7": true, "mM7": true,
+	"m9": true, "M9": true, "mM9": true, "m11": true, "M11": true, "m13": true,
 	"M13": true, "dim7": true, "m7b5": true, "aug7": true, "sus4": true, "sus2": true,
 	"7b9": true, "7#9": true, "7b5": true, "7#5": true, "7#11": true,
-	"7b13": true, "7alt": true, "7sus4": true,
+	"7b13": true, "7alt": true, "7sus4": true, "7sus2": true,
 	"6": true, "m6": true, "69": true, "m69": true,
 	"add9": true, "madd9": true, "add11": true, "madd11": true, "add13": true, "madd13": true,
 	"M7#5": true, "m9b5": true, "9b5": true, "9#5": true, "9#11": true, "9sus4": true,
