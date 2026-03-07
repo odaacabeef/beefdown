@@ -58,6 +58,8 @@ func (d *Device) StartPlayback() {
 		return
 	}
 
+	d.state.play()
+
 	ctx, cf := context.WithCancel(context.Background())
 	d.ctx = ctx
 	d.CancelF = cf
@@ -109,8 +111,6 @@ func (d *Device) playPrimary(a *sequence.Arrangement) {
 			d.sendTrack(m)
 		}
 	}()
-
-	d.state.play()
 
 	// Handle different sync modes
 	switch d.sync {
@@ -177,11 +177,11 @@ func (d *Device) playRecursive(a *sequence.Arrangement, done *chan struct{}) {
 	clockSub := make(chan struct{})
 	d.ClockSub.Sub(a.Name(), clockSub)
 
-	defer d.ClockSub.Unsub(a.Name())
-
 	if done != nil {
 		defer close(*done)
 	}
+
+	defer d.ClockSub.Unsub(a.Name())
 
 	for {
 		for aidx, stepPlayables := range a.Playables {
