@@ -3,6 +3,8 @@ package device
 import (
 	"context"
 	"fmt"
+	"runtime"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -71,9 +73,16 @@ func (d *Device) StartPlayback() {
 // playPrimary is intended for top-level arrangements
 func (d *Device) playPrimary(a *sequence.Arrangement) {
 
+	// Suspend GC for the duration of playback to prevent tick dropping
+	debug.SetGCPercent(-1)
+
 	d.beat = time.Duration(float64(time.Minute) / d.bpm)
 
 	defer func() {
+		// Restore GC and collect anything that accumulated during playback
+		debug.SetGCPercent(100)
+		runtime.GC()
+
 		// Recover from any panics to ensure cleanup always happens
 		if r := recover(); r != nil {
 			d.errorsCh <- fmt.Errorf("panic in playback: %v", r)
