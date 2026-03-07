@@ -1,11 +1,4 @@
-.PHONY: all build test install clean rust-lib
-
-# Static library (same extension on all platforms)
-UNAME := $(shell uname -s)
-LIB_EXT := a
-
-RUST_LIB := rust/target/release/libbeefdown.$(LIB_EXT)
-RUST_LIB_NAME := libbeefdown.$(LIB_EXT)
+.PHONY: all build test install clean rust-lib uninstall help
 
 # Default target: build everything
 all: build
@@ -23,9 +16,7 @@ rust-lib:
 # Run tests for both Go and Rust
 test: rust-lib
 	@echo "Running Go tests..."
-	go test ./sequence
-	go test ./sequence/parsers/metadata
-	go test ./sequence/parsers/part
+	go test ./...
 	@echo "Running Rust tests..."
 	cd rust && cargo test --release
 
@@ -35,10 +26,6 @@ install: rust-lib
 	go install .
 	@echo ""
 	@echo "✅ Installation complete!"
-	@echo "   - Go binary: $(shell go env GOPATH)/bin/beefdown"
-	@echo ""
-	@echo "The binary is statically linked and fully self-contained."
-	@echo "No external Rust library dependencies required."
 
 # Clean build artifacts
 clean:
@@ -54,10 +41,6 @@ uninstall:
 	go clean -i
 	@echo "✅ Uninstall complete!"
 
-# Development: build and run with example file
-dev: build
-	./beefdown sequences/example.md
-
 # Show help
 help:
 	@echo "Beefdown Build System"
@@ -70,10 +53,4 @@ help:
 	@echo "  make install      - Install self-contained Go binary to GOPATH"
 	@echo "  make uninstall    - Remove installed binary"
 	@echo "  make clean        - Clean all build artifacts"
-	@echo "  make dev          - Build and run with example file"
 	@echo "  make help         - Show this help"
-	@echo ""
-	@echo "System info:"
-	@echo "  OS: $(UNAME)"
-	@echo "  Rust static library: $(RUST_LIB)"
-	@echo "  Go binary path: $(shell go env GOPATH)/bin/"
