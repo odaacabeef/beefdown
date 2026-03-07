@@ -21,18 +21,12 @@ func (s *sub) Unsub(name string) {
 
 func (s *sub) Pub() {
 	s.mu.RLock()
-	channels := make([]chan struct{}, 0, len(s.ch))
-	for _, ch := range s.ch {
-		channels = append(channels, ch)
-	}
-	s.mu.RUnlock()
+	defer s.mu.RUnlock()
 
-	for _, ch := range channels {
+	for _, ch := range s.ch {
 		select {
 		case ch <- struct{}{}:
-			// Message sent successfully
 		default:
-			// Channel is full or closed, skip it
 		}
 	}
 }
