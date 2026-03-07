@@ -2,6 +2,8 @@
 
 A MIDI sequencer that uses markdown syntax to define sequences.
 
+_See [docs/architecture.md](docs/architecture.md) for a more technical overview._
+
 ## Sequences
 
 This file is a sequence. Run it with:
